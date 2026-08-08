@@ -1,0 +1,13 @@
+# Local data — real business data and generated DBs, never committed
+*.db
+*.xls
+*.xlsx
+*.csv
+sss_secret.key
+logs/
+uploads/
+
+__pycache__/
+*.pyc
+.venv/
+venv/

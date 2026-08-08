@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SSS — SO / STO Status</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+<script>
+// Same theme mechanism as hub.html/settings.html — shared pp_theme key, so
+// switching theme here also applies there and vice versa.
+(function () {
+    document.documentElement.classList.add('theme-' + (localStorage.getItem('pp_theme') || 'light'));
+})();
+</script>
+<style>
+/* ============ Design tokens ============
+   Reuses the approved SO/STO Status Tracker mockup's own light/dark palette;
+   only the *mechanism* for switching (class, not attribute) is unified with
+   the rest of the app (settings.html) so pp_theme is a shared preference.
+*/
+:root{
+  --page:#eef1f5; --page2:#e4e9f0;
+  --surface:#ffffff; --surface2:#f6f8fa;
+  --border:#dde3ea;
+  --ink:#101826; --ink-mut:#5b6b7c; --ink-dim:#8b98a8;
+  --accent:#2d72d9; --accent-dim:rgba(45,114,217,.10);
+  --st-green:#1a7f37; --st-green-bg:rgba(26,127,55,.11);
+  --st-amber:#9a6700; --st-amber-bg:rgba(154,103,0,.12); --st-amber-border:rgba(154,103,0,.35);
+  --st-teal:#0d7d7a; --st-teal-bg:rgba(13,125,122,.12);
+  --st-red:#c5302f; --st-red-bg:rgba(197,48,47,.11);
+  --st-grey:#5b6b7c; --st-grey-bg:rgba(91,107,124,.10);
+  --shadow: 0 1px 2px rgba(16,24,38,.04), 0 12px 32px rgba(16,24,38,.08);
+  --font-ui: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "DM Mono", monospace;
+}
+:root.theme-dark{
+  --page:#0b121d; --page2:#0f1c2e;
+  --surface:#141f30; --surface2:#101a29;
+  --border:rgba(255,255,255,.09);
+  --ink:#f2f5f9; --ink-mut:#9db0c4; --ink-dim:#69798d;
+  --accent:#5b9af5; --accent-dim:rgba(91,154,245,.14);
+  --st-green:#3fb950; --st-green-bg:rgba(63,185,80,.14);
+  --st-amber:#d29922; --st-amber-bg:rgba(210,153,34,.14); --st-amber-border:rgba(210,153,34,.35);
+  --st-teal:#2dd4cf; --st-teal-bg:rgba(45,212,207,.14);
+  --st-red:#f85149; --st-red-bg:rgba(248,81,73,.14);
+  --st-grey:#9db0c4; --st-grey-bg:rgba(157,176,196,.12);
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 20px 44px rgba(0,0,0,.45);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  font-family:var(--font-ui); background:linear-gradient(180deg,var(--page),var(--page2));
+  color:var(--ink); min-height:100vh;
+  display:flex; flex-direction:column; align-items:center;
+  padding:24px 16px 48px;
+}
+::selection{ background:var(--accent-dim); }
+button{ font-family:inherit; }
+
+/* ---------- Phone frame ---------- */
+.phone-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.phone{
+  width:390px; max-width:92vw; height:844px; max-height:92vh;
+  background:var(--surface); border-radius:44px; border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  overflow:hidden; position:relative; display:flex; flex-direction:column;
+}
+.notch{
+  position:absolute; top:0; left:50%; transform:translateX(-50%);
+  width:120px; height:24px; background:var(--page2); border-radius:0 0 16px 16px; z-index:30;
+}
+.status-bar{
+  height:40px; flex-shrink:0; display:flex; align-items:flex-end; justify-content:space-between;
+  padding:0 22px 6px; font-size:.72rem; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums;
+}
+.app-shell{ display:flex; flex-direction:column; flex:1; min-height:0; }
+
+/* App chrome */
+.appbar{
+  padding:10px 16px 12px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface);
+}
+.appbar-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.brand{ display:flex; align-items:center; gap:8px; }
+.brand-mark{
+  width:26px; height:26px; border-radius:8px; background:var(--accent); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:.78rem; font-weight:800;
+}
+.brand-name{ font-size:.86rem; font-weight:700; }
+.brand-sub{ font-size:.65rem; color:var(--ink-dim); font-weight:600; letter-spacing:.03em; }
+.avatar{
+  width:26px; height:26px; border-radius:50%; background:var(--surface2); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center; font-size:.66rem; font-weight:700; color:var(--ink-mut);
+}
+.avatar-cluster{ display:flex; align-items:center; gap:6px; }
+.logout-btn{
+  width:26px; height:26px; border-radius:50%; border:1px solid var(--border); background:var(--surface2);
+  color:var(--ink-mut); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; font-size:.72rem;
+  text-decoration:none;
+}
+.logout-btn:hover{ color:var(--st-red); border-color:var(--st-red); }
+
+.search-row{ display:flex; gap:8px; }
+.search-box{
+  flex:1; display:flex; align-items:center; gap:7px; background:var(--surface2);
+  border:1px solid var(--border); border-radius:11px; padding:9px 12px;
+}
+.search-box svg{ flex-shrink:0; opacity:.55; }
+.search-box input{
+  border:none; background:transparent; outline:none; color:var(--ink); font-family:var(--font-mono);
+  font-size:.82rem; width:100%;
+}
+.search-box input::placeholder{ color:var(--ink-dim); font-family:var(--font-ui); }
+
+.type-toggle{ display:flex; gap:6px; margin-top:9px; }
+.tt-btn{
+  border:1px solid var(--border); background:transparent; color:var(--ink-mut);
+  font-size:.71rem; font-weight:700; letter-spacing:.02em; padding:5px 12px; border-radius:8px; cursor:pointer;
+}
+.tt-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.sync-strip{
+  margin-top:10px; display:flex; align-items:center; gap:8px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+  padding:7px 10px; font-size:.68rem; color:var(--ink-mut);
+}
+.sync-dot{ width:7px; height:7px; border-radius:50%; background:var(--st-green); flex-shrink:0; box-shadow:0 0 0 3px var(--st-green-bg); }
+.sync-strip b{ color:var(--ink); font-weight:700; }
+.sync-refresh{
+  margin-left:auto; border:none; background:none; color:var(--accent); font-size:.68rem; font-weight:700;
+  cursor:pointer; padding:2px 4px; flex-shrink:0;
+}
+.sync-refresh:disabled{ opacity:.5; cursor:default; }
+.sync-refresh.standalone{ margin-left:0; }
+
+/* Scroll area */
+.screen{ flex:1; min-height:0; overflow-y:auto; }
+.screen::-webkit-scrollbar{ width:0; }
+
+.view{ padding:14px 16px 28px; display:none; }
+.view.active{ display:block; }
+
+.chip-lbl{ font-size:.65rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-dim); margin:2px 0 8px; }
+
+.results-count{ font-size:.68rem; color:var(--ink-dim); margin:0 0 8px; font-weight:600; }
+
+.rcard{
+  border:1px solid var(--border); border-radius:13px; padding:12px 13px; margin-bottom:10px; cursor:pointer;
+  background:var(--surface); transition:border-color .12s, transform .12s;
+}
+.rcard:hover{ border-color:var(--accent); }
+.rcard:active{ transform:scale(.99); }
+.rcard-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.rcard-no{ font-family:var(--font-mono); font-size:.82rem; font-weight:700; }
+.rcard-type{
+  font-size:.6rem; font-weight:800; letter-spacing:.06em; padding:2px 6px; border-radius:5px;
+  background:var(--accent-dim); color:var(--accent); flex-shrink:0;
+}
+.rcard-sub{ font-size:.74rem; color:var(--ink-mut); margin-bottom:9px; }
+.pill-row{ display:flex; gap:6px; flex-wrap:wrap; }
+
+.pill{
+  display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700;
+  padding:3px 8px; border-radius:20px; white-space:nowrap;
+}
+.pill-dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.pill.green{ background:var(--st-green-bg); color:var(--st-green); } .pill.green .pill-dot{ background:var(--st-green); }
+.pill.amber{ background:var(--st-amber-bg); color:var(--st-amber); } .pill.amber .pill-dot{ background:var(--st-amber); }
+.pill.teal{ background:var(--st-teal-bg); color:var(--st-teal); } .pill.teal .pill-dot{ background:var(--st-teal); }
+.pill.red{ background:var(--st-red-bg); color:var(--st-red); } .pill.red .pill-dot{ background:var(--st-red); }
+.pill.grey{ background:var(--st-grey-bg); color:var(--st-grey); } .pill.grey .pill-dot{ background:var(--st-grey); }
+
+.empty-state{ text-align:center; padding:50px 20px 20px; color:var(--ink-dim); }
+.empty-state svg{ opacity:.4; margin-bottom:10px; }
+.empty-state div{ font-size:.8rem; }
+
+/* ---- Detail view ---- */
+.dback{
+  display:flex; align-items:center; gap:6px; color:var(--accent); font-size:.78rem; font-weight:700;
+  cursor:pointer; margin-bottom:12px; -webkit-user-select:none; user-select:none;
+}
+.dhead{ margin-bottom:14px; }
+.dhead-no{ font-family:var(--font-mono); font-size:1.05rem; font-weight:800; letter-spacing:-.01em; }
+.dhead-sub{ font-size:.76rem; color:var(--ink-mut); margin-top:3px; }
+.dgrid{
+  display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin:14px 0 4px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px;
+}
+.dgrid div{ min-width:0; }
+.dg-lbl{ font-size:.62rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:2px; }
+.dg-val{ font-size:.79rem; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dg-val.mono{ font-family:var(--font-mono); font-weight:700; }
+
+.stage-card{
+  border:1px solid var(--border); border-radius:13px; padding:13px 14px; margin-top:12px; background:var(--surface);
+}
+.stage-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+.stage-name{ display:flex; align-items:center; gap:7px; font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-mut); }
+.stage-icon{ width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.stage-fields{ display:flex; flex-direction:column; gap:6px; }
+.sf-row{ display:flex; align-items:baseline; justify-content:space-between; font-size:.78rem; gap:10px; }
+.sf-k{ color:var(--ink-dim); flex-shrink:0; }
+.sf-v{ font-family:var(--font-mono); font-weight:600; color:var(--ink); text-align:right; overflow:hidden; text-overflow:ellipsis; }
+
+.qty-bar{ margin-top:9px; }
+.qty-track{ height:6px; border-radius:3px; background:var(--border); overflow:hidden; }
+.qty-fill{ height:100%; border-radius:3px; background:var(--st-teal); }
+.qty-lbl{ display:flex; justify-content:space-between; font-size:.65rem; color:var(--ink-dim); margin-top:4px; font-family:var(--font-mono); }
+
+.section-hdr{
+  font-size:.68rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-dim);
+  margin:20px 0 9px;
+}
+.items-table{ width:100%; border-collapse:collapse; font-size:.75rem; }
+.items-table th{
+  text-align:left; font-size:.6rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--ink-dim); padding:0 0 6px; border-bottom:1px solid var(--border);
+}
+.items-table th.num, .items-table td.num{ text-align:right; }
+.items-table td{ padding:8px 0; border-bottom:1px solid var(--border); vertical-align:top; }
+.items-table tr:last-child td{ border-bottom:none; }
+.it-name{ font-weight:600; color:var(--ink); }
+.it-code{ font-family:var(--font-mono); font-size:.66rem; color:var(--ink-dim); margin-top:1px; }
+.items-table td.num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; color:var(--ink); }
+
+/* History timeline */
+.tl{ position:relative; padding-left:20px; margin-top:6px; }
+.tl::before{ content:''; position:absolute; left:5px; top:4px; bottom:4px; width:1.5px; background:var(--border); }
+.tl-item{ position:relative; padding-bottom:16px; }
+.tl-item:last-child{ padding-bottom:0; }
+.tl-dot{
+  position:absolute; left:-20px; top:2px; width:11px; height:11px; border-radius:50%;
+  background:var(--surface); border:2px solid var(--accent);
+}
+.tl-item.done .tl-dot{ border-color:var(--st-green); background:var(--st-green); }
+.tl-when{ font-size:.63rem; color:var(--ink-dim); font-family:var(--font-mono); margin-bottom:2px; }
+.tl-what{ font-size:.79rem; color:var(--ink); font-weight:600; }
+.tl-what b{ color:var(--accent); }
+.tl-empty{ font-size:.78rem; color:var(--ink-dim); font-style:italic; }
+
+/* ---------- Settings ---------- */
+.set-panel{ border:1px solid var(--border); border-radius:13px; background:var(--surface); padding:14px 15px; margin-bottom:14px; }
+.set-panel-hdr{ font-size:.82rem; font-weight:700; margin-bottom:2px; }
+.set-panel-sub{ font-size:.7rem; color:var(--ink-dim); margin-bottom:12px; line-height:1.5; }
+.set-group{ margin-bottom:14px; }
+.set-group:last-child{ margin-bottom:0; }
+.set-label{ font-size:.62rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:7px; display:block; }
+.set-field-input{
+  width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--border);
+  background:var(--surface2); color:var(--ink); font-size:.82rem; font-family:var(--font-ui); box-sizing:border-box;
+}
+.seg-row{ display:flex; gap:6px; }
+.seg-btn{
+  flex:1; text-align:center; border:1px solid var(--border); background:var(--surface2); color:var(--ink-mut);
+  font-size:.72rem; font-weight:700; padding:8px 6px; border-radius:9px; cursor:pointer;
+}
+.seg-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.toggle-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+.toggle-row:last-child{ border-bottom:none; padding-bottom:0; }
+.toggle-row:first-child{ padding-top:0; }
+.toggle-text b{ display:block; font-size:.78rem; font-weight:600; color:var(--ink); }
+.toggle-text span{ display:block; font-size:.66rem; color:var(--ink-dim); margin-top:1px; }
+.tsw{ position:relative; width:38px; height:22px; flex-shrink:0; display:inline-block; }
+.tsw input{ opacity:0; width:0; height:0; position:absolute; }
+.tsw-track{ position:absolute; inset:0; background:var(--border); border-radius:20px; cursor:pointer; transition:background .15s; }
+.tsw input:checked ~ .tsw-track{ background:var(--accent); }
+.tsw-thumb{
+  position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.35); transition:transform .15s; pointer-events:none;
+}
+.tsw input:checked ~ .tsw-thumb{ transform:translateX(16px); }
+
+.set-account-row{ display:flex; align-items:center; justify-content:space-between; padding:4px 0 4px; }
+.set-account-who b{ display:block; font-size:.84rem; font-weight:700; }
+.set-account-who span{ font-size:.68rem; color:var(--ink-dim); }
+
+.set-about{ font-size:.68rem; color:var(--ink-dim); line-height:1.7; text-align:center; padding-bottom:6px; }
+.set-about b{ color:var(--ink-mut); }
+
+.set-signout-btn{
+  display:block; width:100%; padding:11px; border-radius:11px; border:1px solid var(--st-red); background:var(--st-red-bg);
+  color:var(--st-red); font-size:.82rem; font-weight:700; cursor:pointer; margin-bottom:14px; text-align:center;
+  text-decoration:none; box-sizing:border-box;
+}
+.set-signout-btn:hover{ background:var(--st-red); color:#fff; }
+
+/* ---------- Alerts / item watchlist ---------- */
+.add-watch-btn{
+  width:100%; padding:11px; border-radius:11px; border:1.5px dashed var(--accent); background:var(--accent-dim);
+  color:var(--accent); font-size:.82rem; font-weight:700; cursor:pointer; margin-bottom:16px;
+}
+.add-watch-btn:hover{ background:var(--accent); color:#fff; border-style:solid; }
+.watch-card{ border:1px solid var(--border); border-radius:13px; padding:11px 13px; margin-bottom:9px; background:var(--surface); }
+.watch-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.watch-code{ font-family:var(--font-mono); font-weight:700; font-size:.8rem; color:var(--ink); }
+.watch-desc{ font-size:.72rem; color:var(--ink-mut); margin-top:2px; }
+.watch-meta{ display:flex; gap:6px; flex-wrap:wrap; margin-top:9px; align-items:center; }
+.watch-cat-badge{ font-size:.6rem; font-weight:700; color:var(--ink-mut); background:var(--surface2); border:1px solid var(--border); padding:2px 7px; border-radius:6px; }
+.watch-qty-badge{ font-size:.6rem; font-weight:700; color:var(--accent); background:var(--accent-dim); border:1px solid var(--accent); padding:2px 7px; border-radius:6px; font-family:var(--font-mono); }
+.watch-remove{
+  width:24px; height:24px; border-radius:50%; border:1px solid var(--border); background:var(--surface2);
+  color:var(--ink-dim); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; font-size:.85rem;
+}
+.watch-remove:hover{ color:var(--st-red); border-color:var(--st-red); }
+
+.watch-match-row{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:8px 0; border-top:1px solid var(--border);
+  font-size:.72rem; cursor:pointer;
+}
+.watch-match-row:hover .watch-match-no{ color:var(--accent); text-decoration:underline; }
+.watch-match-no{ font-family:var(--font-mono); font-weight:700; color:var(--ink); }
+.watch-match-inv{ font-family:var(--font-mono); font-size:.66rem; color:var(--ink-dim); margin-left:auto; }
+.watch-no-match{ font-size:.7rem; color:var(--ink-dim); font-style:italic; padding:8px 0 0; border-top:1px solid var(--border); margin-top:2px; }
+.watch-produced-btn{
+  width:100%; margin-top:10px; padding:8px; border-radius:9px; border:1px solid var(--st-green);
+  background:var(--st-green-bg); color:var(--st-green); font-size:.74rem; font-weight:700; cursor:pointer;
+}
+.watch-produced-btn:hover{ background:var(--st-green); color:#fff; }
+.watch-produced-note{
+  margin-top:10px; font-size:.7rem; font-weight:600; color:var(--st-green);
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+}
+.watch-reopen-link{ color:var(--ink-dim); cursor:pointer; text-decoration:underline; font-weight:600; font-size:.66rem; }
+.watch-reopen-link:hover{ color:var(--ink); }
+
+.im-note{ font-size:.68rem; color:var(--ink-dim); margin-bottom:10px; line-height:1.5; }
+.im-search{ display:flex; align-items:center; gap:7px; background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:9px 12px; margin-bottom:10px; }
+.im-search svg{ flex-shrink:0; opacity:.55; }
+.im-search input{ border:none; background:transparent; outline:none; color:var(--ink); font-size:.82rem; width:100%; font-family:var(--font-ui); }
+.im-results{ max-height:200px; overflow-y:auto; border:1px solid var(--border); border-radius:11px; margin-bottom:14px; }
+.im-result-row{ display:flex; flex-direction:column; gap:2px; padding:9px 12px; border-bottom:1px solid var(--border); cursor:pointer; }
+.im-result-row:last-child{ border-bottom:none; }
+.im-result-row:hover{ background:var(--surface2); }
+.im-result-row.selected{ background:var(--accent-dim); }
+.im-r-code{ font-family:var(--font-mono); font-size:.76rem; font-weight:700; color:var(--ink); }
+.im-r-desc{ font-size:.68rem; color:var(--ink-mut); }
+.im-r-cat{ font-size:.6rem; color:var(--ink-dim); margin-top:1px; }
+.im-empty{ padding:16px; text-align:center; font-size:.75rem; color:var(--ink-dim); }
+.im-selected-card{ display:none; border:1px solid var(--accent); background:var(--accent-dim); border-radius:11px; padding:10px 12px; margin-bottom:14px; }
+.im-selected-card.show{ display:block; }
+.im-sel-code{ font-family:var(--font-mono); font-weight:700; font-size:.8rem; color:var(--ink); }
+.im-sel-desc{ font-size:.7rem; color:var(--ink-mut); margin-top:2px; }
+.im-add-btn{ width:100%; }
+.im-add-btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+.toast{
+  position:absolute; left:50%; bottom:16px; transform:translateX(-50%) translateY(0); z-index:50;
+  background:var(--ink); color:var(--page); font-size:.72rem; font-weight:600;
+  padding:9px 16px; border-radius:10px; box-shadow:var(--shadow);
+  opacity:0; pointer-events:none; transition:opacity .18s, transform .18s;
+  max-width:82%; text-align:center;
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
+
+/* ---------- Home / date picker ---------- */
+.date-select-row{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.date-trigger{
+  flex:1; display:flex; align-items:center; gap:8px; padding:10px 12px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:11px;
+  color:var(--ink); font-size:.82rem; font-weight:700; cursor:pointer; font-family:var(--font-mono);
+}
+.date-trigger:hover{ border-color:var(--accent); }
+.date-trigger svg{ flex-shrink:0; color:var(--accent); }
+.dt-caret{ margin-left:auto; font-size:.7rem; color:var(--ink-dim); font-family:var(--font-ui); }
+.home-today-chip{
+  font-size:.64rem; font-weight:700; color:var(--accent); background:var(--accent-dim);
+  padding:8px 12px; border-radius:11px; cursor:pointer; white-space:nowrap; flex-shrink:0;
+}
+
+/* ---------- Date picker modal (bottom sheet) ---------- */
+.date-modal-backdrop{
+  position:absolute; inset:0; background:rgba(6,10,18,.52); z-index:60;
+  display:none; align-items:flex-end; border-radius:44px; overflow:hidden;
+}
+.date-modal-backdrop.open{ display:flex; }
+.date-modal{
+  width:100%; max-height:86%; background:var(--surface); border-radius:20px 20px 0 0;
+  border:1px solid var(--border); border-bottom:none;
+  display:flex; flex-direction:column; overflow:hidden; animation:sheetUp .18s ease;
+}
+@keyframes sheetUp{ from{ transform:translateY(26px); opacity:.4; } to{ transform:translateY(0); opacity:1; } }
+.dm-hdr{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.dm-title{ font-size:.86rem; font-weight:700; }
+.dm-close{
+  width:26px; height:26px; border-radius:50%; border:1px solid var(--border); background:var(--surface2);
+  color:var(--ink-mut); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.9rem;
+}
+.dm-close:hover{ color:var(--st-red); border-color:var(--st-red); }
+.dm-body{ padding:12px 16px 18px; overflow-y:auto; }
+.dm-mode-toggle{ display:flex; gap:6px; margin-bottom:12px; }
+.dm-mode-toggle .tt-btn{ flex:1; text-align:center; }
+.dm-pills{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.dm-pill{
+  border:1px solid var(--border); background:var(--surface2); color:var(--ink-mut);
+  font-size:.7rem; font-weight:600; padding:6px 11px; border-radius:8px; cursor:pointer;
+}
+.dm-pill:hover{ border-color:var(--accent); color:var(--accent); }
+.dm-range-row{ display:flex; gap:8px; margin-top:12px; }
+.dm-rbox{ flex:1; background:var(--surface2); border-radius:9px; padding:8px 10px; border:1px solid var(--border); }
+.dm-rbox-lbl{ font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-dim); margin-bottom:2px; }
+.dm-rbox-val{ font-size:.78rem; font-weight:700; color:var(--ink); font-family:var(--font-mono); }
+.dm-rbox-val.empty{ color:var(--ink-dim); font-weight:500; font-style:italic; font-family:var(--font-ui); }
+.dm-actions{ display:flex; gap:8px; margin-top:12px; }
+.dm-clear{ flex:1; padding:9px; border-radius:9px; font-size:.78rem; font-weight:700; cursor:pointer; background:var(--surface2); border:1px solid var(--border); color:var(--ink-mut); }
+.dm-apply{ flex:2; padding:9px; border-radius:9px; font-size:.78rem; font-weight:700; cursor:pointer; background:var(--accent); border:none; color:#fff; }
+
+.cal-nav-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cal-month{ font-size:.82rem; font-weight:700; }
+.cal-navbtn{
+  width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:var(--surface2);
+  color:var(--ink-mut); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.8rem;
+}
+.cal-navbtn:hover{ color:var(--accent); border-color:var(--accent); }
+.cal-dow-row{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:2px; }
+.cal-dow{ text-align:center; font-size:.58rem; font-weight:700; color:var(--ink-dim); letter-spacing:.03em; padding-bottom:4px; }
+.cal-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-cell{
+  position:relative; aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-radius:8px; font-size:.74rem; cursor:pointer; color:var(--ink); border:1.5px solid transparent;
+}
+.cal-cell.other{ color:var(--ink-dim); opacity:.32; pointer-events:none; }
+.cal-cell:hover:not(.other):not(.selected){ background:var(--surface2); }
+.cal-cell.today{ border-color:var(--accent); font-weight:700; }
+.cal-cell.selected{ background:var(--accent); color:#fff; }
+.cal-cell.range-same{ background:var(--accent); color:#fff; border-radius:8px; }
+.cal-cell.range-start{ background:var(--accent); color:#fff; border-radius:8px 0 0 8px; }
+.cal-cell.range-end{ background:var(--accent); color:#fff; border-radius:0 8px 8px 0; }
+.cal-cell.range-mid{ background:var(--accent-dim); border-radius:0; }
+.cal-dots{ display:flex; gap:2px; margin-top:2px; height:4px; }
+.cal-dot-mini{ width:4px; height:4px; border-radius:50%; background:var(--st-teal); }
+.cal-cell.selected .cal-dot-mini{ background:rgba(255,255,255,.9) !important; }
+
+.day-hdr{ display:flex; align-items:baseline; justify-content:space-between; margin:2px 0 10px; }
+.day-hdr-date{ font-size:.92rem; font-weight:700; }
+.day-hdr-badge{ font-size:.64rem; color:var(--ink-dim); font-weight:600; }
+
+.stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+.stat-tile{ border:1px solid var(--border); border-radius:11px; background:var(--surface); padding:10px 8px; text-align:center; }
+.stat-tile .n{ font-size:1.05rem; font-weight:800; font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.stat-tile .l{ font-size:.58rem; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; font-weight:700; }
+.stat-tile.acc-amber .n{ color:var(--st-amber); }
+.stat-tile.acc-teal .n{ color:var(--st-teal); }
+.stat-tile.acc-green .n{ color:var(--st-green); }
+
+.day-doc{ border:1px solid var(--border); border-radius:11px; padding:10px 12px; margin-bottom:8px; background:var(--surface); cursor:pointer; }
+.day-doc:hover{ border-color:var(--accent); }
+.day-doc-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:3px; }
+.day-doc-no{ font-family:var(--font-mono); font-size:.78rem; font-weight:700; }
+.day-doc-evt{ font-size:.72rem; color:var(--ink-mut); }
+.day-doc-date{ font-size:.6rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:5px; }
+.day-empty{ text-align:center; padding:26px 10px; color:var(--ink-dim); font-size:.78rem; }
+
+.coming-soon{ text-align:center; padding:70px 20px 20px; color:var(--ink-dim); }
+.hidden-block{ display:none; }
+.coming-soon-icon{ font-size:2rem; margin-bottom:14px; opacity:.5; }
+.coming-soon-title{ font-size:1rem; font-weight:800; color:var(--ink-mut); margin-bottom:6px; }
+.coming-soon-sub{ font-size:.8rem; line-height:1.5; max-width:26ch; margin:0 auto; }
+
+.tabbar{
+  display:flex; border-top:1px solid var(--border); background:var(--surface); flex-shrink:0;
+}
+.tab{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:9px 0 12px;
+  color:var(--ink-dim); font-size:.62rem; font-weight:700; background:none; border:none; cursor:pointer;
+}
+.tab.active{ color:var(--accent); }
+
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+
+/* On an actual phone, drop the decorative "phone mockup" frame (notch, fake
+   status bar, centered card with margins) and just fill the real screen —
+   that chrome only made sense when reviewing this on a desktop monitor. */
+@media (max-width: 480px){
+  body{ padding:0; }
+  .phone-wrap{ width:100%; }
+  .phone{
+    width:100%; max-width:none; height:100vh; max-height:none;
+    border-radius:0; border:none; box-shadow:none;
+  }
+  .notch, .status-bar{ display:none; }
+}
+</style>
+</head>
+<body data-can-manage-production="{{ 'true' if can_manage_production else 'false' }}" data-is-developer="{{ 'true' if is_developer else 'false' }}">
+
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="status-bar"><span id="clk">9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+
+    <div class="app-shell" id="appShell">
+      <div class="appbar">
+        <div class="appbar-top">
+          <div class="brand">
+            <div class="brand-mark">P</div>
+            <div>
+              <div class="brand-name">SSS</div>
+              <div class="brand-sub">SO / STO STATUS</div>
+            </div>
+          </div>
+          <div class="avatar-cluster">
+            <div class="avatar" title="{{ user.username }}">{{ user.username[:2]|upper }}</div>
+            <a class="logout-btn" href="{{ url_for('logout') }}" title="Sign out">&#9211;</a>
+          </div>
+        </div>
+        <div class="search-row">
+          <div class="search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input id="q" type="text" placeholder="Search SO / STO no., customer, invoice..." autocomplete="off" />
+          </div>
+        </div>
+        <div class="type-toggle" id="typeToggle">
+          <button type="button" class="tt-btn active" data-t="ALL">All</button>
+          <button type="button" class="tt-btn" data-t="SO">SO</button>
+          <button type="button" class="tt-btn" data-t="STO">STO</button>
+        </div>
+        <div class="sync-strip">
+          <span class="sync-dot"></span>
+          <span id="syncLabel">Not synced yet</span>
+          <button type="button" class="sync-refresh" id="syncNowBtn">Sync Now</button>
+        </div>
+      </div>
+
+      <div class="screen">
+        <!-- HOME / CALENDAR VIEW -->
+        <div class="view active" id="view-home">
+          <div class="date-select-row">
+            <button type="button" class="date-trigger" id="dateTriggerBtn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <span id="dateTriggerLabel">Today</span>
+              <span class="dt-caret">&#9662;</span>
+            </button>
+            <span class="home-today-chip" id="jumpTodayBtn">Today</span>
+          </div>
+
+          <div class="day-hdr">
+            <span class="day-hdr-date" id="dayHdrDate"></span>
+            <span class="day-hdr-badge" id="dayHdrBadge"></span>
+          </div>
+          <div class="stat-row" id="dayStatRow"></div>
+          <div class="chip-lbl">Documents touched in this period</div>
+          <div id="dayDocList"></div>
+        </div>
+
+        <!-- SEARCH / LIST VIEW -->
+        <div class="view" id="view-search">
+          <div class="results-count" id="resultsCount"></div>
+          <div id="resultsList"></div>
+        </div>
+
+        <!-- ALERTS / ITEM WATCHLIST VIEW -->
+        <div class="view" id="view-alerts">
+          <div id="alertsComingSoon" class="coming-soon">
+            <div class="coming-soon-icon">&#128276;</div>
+            <div class="coming-soon-title">Coming Soon</div>
+            <div class="coming-soon-sub">Item alerts and watchlists are still being tested. This tab will open up once it's ready.</div>
+          </div>
+          <div id="alertsReal" class="hidden-block">
+            <button type="button" class="add-watch-btn" id="addWatchBtn">&#43; Watch an item</button>
+
+            <div class="chip-lbl">Watchlist (<span id="watchCount">0</span>)</div>
+            <div id="watchList"></div>
+          </div>
+        </div>
+
+        <!-- SETTINGS VIEW -->
+        <div class="view" id="view-settings">
+          <a class="set-signout-btn" href="{{ url_for('logout') }}">&#9211; Sign out</a>
+
+          <div class="set-panel">
+            <div class="set-panel-hdr">Account</div>
+            <div class="set-account-row">
+              <div class="set-account-who">
+                <b>{{ user.username }}</b>
+                <span>{{ 'Production Manager' if can_manage_production else 'Team member' }}{{ ' · Admin' if user.role == 'admin' else '' }}</span>
+              </div>
+              <div class="avatar">{{ user.username[:2]|upper }}</div>
+            </div>
+          </div>
+
+          <div class="set-panel">
+            <div class="set-panel-hdr">Appearance</div>
+            <div class="set-panel-sub">Applies across the whole app on this device.</div>
+            <div class="set-group">
+              <span class="set-label">Theme</span>
+              <div class="seg-row" id="setThemeRow">
+                <button type="button" class="seg-btn" data-val="light">&#9728;&#65039; Light</button>
+                <button type="button" class="seg-btn" data-val="dark">&#127769; Dark</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="set-panel">
+            <div class="set-panel-hdr">Notifications</div>
+            <div class="set-panel-sub">Which status changes should raise an alert (see the Alerts tab).</div>
+            <div class="toggle-row">
+              <div class="toggle-text"><b>Order Authorized</b><span>SO/STO moves to Authorized</span></div>
+              <label class="tsw"><input type="checkbox" id="notifyAuthorized"><span class="tsw-track"></span><span class="tsw-thumb"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-text"><b>Packslip Shipped</b><span>Goods dispatched</span></div>
+              <label class="tsw"><input type="checkbox" id="notifyShipped" checked><span class="tsw-track"></span><span class="tsw-thumb"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-text"><b>Invoice Raised</b><span>Invoice number assigned</span></div>
+              <label class="tsw"><input type="checkbox" id="notifyInvoiced" checked><span class="tsw-track"></span><span class="tsw-thumb"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-text"><b>Order Closed</b><span>SO/STO fully completed</span></div>
+              <label class="tsw"><input type="checkbox" id="notifyClosed" checked><span class="tsw-track"></span><span class="tsw-thumb"></span></label>
+            </div>
+          </div>
+
+          <div class="set-panel">
+            <div class="set-panel-hdr">Data Sync</div>
+            <div class="set-panel-sub">Source: <code>Dispatch SO.xls</code> &amp; <code>Dispach STO.xls</code>.<br>
+              Last synced: <span id="setLastSync">never</span>.</div>
+            <button type="button" class="sync-refresh standalone" id="setSyncNowBtn">Sync Now</button>
+          </div>
+
+          <div class="set-panel">
+            <div class="set-panel-hdr">Home Screen</div>
+            <div class="set-group">
+              <span class="set-label">Land on, after sign in</span>
+              <div class="seg-row" id="setLandingRow">
+                <button type="button" class="seg-btn" data-val="home">&#127968; Calendar</button>
+                <button type="button" class="seg-btn" data-val="search">&#128269; Search</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="set-about">
+            SSS &middot; SO / STO Status<br>
+            Data from <code>Dispatch SO.xls</code> / <code>Dispach STO.xls</code> &mdash; history only tracks changes seen since the first sync.
+          </div>
+        </div>
+
+        <!-- DETAIL VIEW -->
+        <div class="view" id="view-detail"></div>
+      </div>
+
+      <div class="tabbar" id="tabbar">
+        <button type="button" class="tab active" data-view="home"><span>&#127968;</span>Home</button>
+        <button type="button" class="tab" data-view="search"><span>&#128269;</span>Search</button>
+        <button type="button" class="tab" data-view="alerts"><span>&#128276;</span>Alerts</button>
+        <button type="button" class="tab" data-view="settings"><span>&#9881;&#65039;</span>Settings</button>
+      </div>
+    </div>
+
+    <!-- DATE PICKER MODAL (single date or start/end range) -->
+    <div class="date-modal-backdrop" id="dateModalBackdrop">
+      <div class="date-modal">
+        <div class="dm-hdr">
+          <span class="dm-title">Select date</span>
+          <button type="button" class="dm-close" id="dmClose" title="Close">&times;</button>
+        </div>
+        <div class="dm-body">
+          <div class="dm-mode-toggle" id="dmModeToggle">
+            <button type="button" class="tt-btn active" data-mode="single">Single date</button>
+            <button type="button" class="tt-btn" data-mode="range">Date range</button>
+          </div>
+          <div class="dm-pills" id="dmPills">
+            <span class="dm-pill" data-preset="today">Today</span>
+            <span class="dm-pill" data-preset="yesterday">Yesterday</span>
+            <span class="dm-pill" data-preset="week">This Week</span>
+            <span class="dm-pill" data-preset="month">This Month</span>
+          </div>
+          <div class="cal-nav-row">
+            <button type="button" class="cal-navbtn" id="dmPrev">&#8249;</button>
+            <span class="cal-month" id="dmMonthLbl"></span>
+            <button type="button" class="cal-navbtn" id="dmNext">&#8250;</button>
+          </div>
+          <div class="cal-dow-row">
+            <span class="cal-dow">S</span><span class="cal-dow">M</span><span class="cal-dow">T</span>
+            <span class="cal-dow">W</span><span class="cal-dow">T</span><span class="cal-dow">F</span><span class="cal-dow">S</span>
+          </div>
+          <div class="cal-days" id="dmDays"></div>
+
+          <div class="dm-range-row" id="dmRangeRow">
+            <div class="dm-rbox">
+              <div class="dm-rbox-lbl">From</div>
+              <div class="dm-rbox-val" id="dmFromVal">&mdash;</div>
+            </div>
+            <div class="dm-rbox">
+              <div class="dm-rbox-lbl">To</div>
+              <div class="dm-rbox-val" id="dmToVal">&mdash;</div>
+            </div>
+          </div>
+          <div class="dm-actions">
+            <button type="button" class="dm-clear" id="dmClear">Clear</button>
+            <button type="button" class="dm-apply" id="dmApply">Apply</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ITEM SEARCH MODAL (search Item Master by partial code/description, select one) -->
+    <div class="date-modal-backdrop" id="itemModalBackdrop">
+      <div class="date-modal">
+        <div class="dm-hdr">
+          <span class="dm-title">Watch an item</span>
+          <button type="button" class="dm-close" id="imClose">&times;</button>
+        </div>
+        <div class="dm-body">
+          <div class="im-search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="imSearchInput" placeholder="Item code or description — try 'spine' or '72X48'" autocomplete="off" />
+          </div>
+          <div class="im-results" id="imResults"></div>
+
+          <div class="im-selected-card" id="imSelectedCard">
+            <div class="im-sel-code" id="imSelCode"></div>
+            <div class="im-sel-desc" id="imSelDesc"></div>
+          </div>
+
+          <div class="set-group">
+            <span class="set-label">Quantity to watch for (optional)</span>
+            <div>
+              <input type="number" min="0" id="imQty" placeholder="Any quantity" class="set-field-input" />
+            </div>
+          </div>
+          <div class="set-group">
+            <span class="set-label">Priority</span>
+            <div class="seg-row" id="imPriorityRow">
+              <button type="button" class="seg-btn" data-val="Low">Low</button>
+              <button type="button" class="seg-btn active" data-val="Normal">Normal</button>
+              <button type="button" class="seg-btn" data-val="High">High</button>
+              <button type="button" class="seg-btn" data-val="Urgent">Urgent</button>
+            </div>
+          </div>
+          <button type="button" class="dm-apply im-add-btn" id="imAddBtn" disabled>Add to Watchlist</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const CAN_MANAGE_PRODUCTION = document.body.dataset.canManageProduction === 'true';
+const IS_DEVELOPER = document.body.dataset.isDeveloper === 'true';
+
+const STATUS_PILL = {
+  'Fresh':['grey'], 'Authorized':['amber'], 'Closed':['green'], 'Deleted':['red'],
+  'Not Created':['grey'], 'Pending':['amber'], 'Shipped':['teal'], 'Reversed':['red'],
+  'Not Invoiced':['grey'], 'Invoiced':['green'],
+  'Low':['grey'], 'Normal':['teal'], 'High':['amber'], 'Urgent':['red'],
+  'Open':['amber'], 'Produced':['green'],
+};
+function pill(label){
+  const cls = (STATUS_PILL[label]||['grey'])[0];
+  return `<span class="pill ${cls}"><span class="pill-dot"></span>${esc(label)}</span>`;
+}
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtCurrency(v){
+  if (v == null) return '—';
+  return '₹ ' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
+async function api(path, opts){
+  const res = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts || {}));
+  if (!res.ok){
+    let msg = res.statusText;
+    try { const j = await res.json(); if (j.error) msg = j.error; } catch (e) {}
+    throw new Error(msg);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const pad2 = n => String(n).padStart(2, '0');
+const dateKey = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const fmtShort = d => `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+const sameDay  = (a, b) => dateKey(a) === dateKey(b);
+const today = () => new Date();
+
+let appliedStart = today(), appliedEnd = today();
+let selMode = 'single';
+let pickStart = null, pickEnd = null;
+let dmYear = today().getFullYear(), dmMonth = today().getMonth();
+const monthActivityCache = {};
+
+function renderDateTrigger(){
+  document.getElementById('dateTriggerLabel').textContent = sameDay(appliedStart, appliedEnd)
+    ? fmtShort(appliedStart)
+    : `${fmtShort(appliedStart)} – ${fmtShort(appliedEnd)}`;
+}
+
+async function fetchMonthActivity(year, month){
+  const key = `${year}-${month}`;
+  if (monthActivityCache[key]) return monthActivityCache[key];
+  const first = `${year}-${pad2(month+1)}-01`;
+  const last = `${year}-${pad2(month+1)}-${pad2(new Date(year, month+1, 0).getDate())}`;
+  const data = await api(`/api/so-sto/summary?start=${first}&end=${last}`);
+  const set = new Set((data.docs || []).map(d => d.dateKey));
+  monthActivityCache[key] = set;
+  return set;
+}
+
+async function openDateModal(){
+  pickStart = new Date(appliedStart);
+  pickEnd = new Date(appliedEnd);
+  selMode = sameDay(appliedStart, appliedEnd) ? 'single' : 'range';
+  dmYear = pickStart.getFullYear(); dmMonth = pickStart.getMonth();
+  document.querySelectorAll('#dmModeToggle .tt-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === selMode));
+  document.getElementById('dmRangeRow').style.display = selMode === 'range' ? 'flex' : 'none';
+  await renderModalCal();
+  renderRangeBoxes();
+  document.getElementById('dateModalBackdrop').classList.add('open');
+}
+function closeDateModal(){
+  document.getElementById('dateModalBackdrop').classList.remove('open');
+}
+function renderRangeBoxes(){
+  document.getElementById('dmFromVal').innerHTML = pickStart ? `<span>${esc(fmtShort(pickStart))}</span>` : '&mdash;';
+  document.getElementById('dmFromVal').classList.toggle('empty', !pickStart);
+  document.getElementById('dmToVal').innerHTML = pickEnd ? `<span>${esc(fmtShort(pickEnd))}</span>` : '&mdash;';
+  document.getElementById('dmToVal').classList.toggle('empty', !pickEnd);
+}
+
+async function renderModalCal(){
+  document.getElementById('dmMonthLbl').textContent = `${MONTHS[dmMonth]} ${dmYear}`;
+  let activity;
+  try { activity = await fetchMonthActivity(dmYear, dmMonth); } catch (e) { activity = new Set(); }
+
+  const firstDow = new Date(dmYear, dmMonth, 1).getDay();
+  const daysInM = new Date(dmYear, dmMonth + 1, 0).getDate();
+  const daysInPrev = new Date(dmYear, dmMonth, 0).getDate();
+  const todayKey = dateKey(today());
+  const sKey = pickStart ? dateKey(pickStart) : null;
+  const eKey = pickEnd ? dateKey(pickEnd) : null;
+  let cells = '';
+  for (let i = firstDow - 1; i >= 0; i--) cells += `<div class="cal-cell other">${daysInPrev - i}</div>`;
+  for (let d = 1; d <= daysInM; d++){
+    const key = `${dmYear}-${pad2(dmMonth+1)}-${pad2(d)}`;
+    let cls = 'cal-cell';
+    if (key === todayKey) cls += ' today';
+    if (selMode === 'single'){
+      if (key === sKey) cls += ' selected';
+    } else if (sKey && eKey){
+      if (sKey === eKey && key === sKey) cls += ' range-same';
+      else if (key === sKey) cls += ' range-start';
+      else if (key === eKey) cls += ' range-end';
+      else if (key > sKey && key < eKey) cls += ' range-mid';
+    } else if (sKey && key === sKey){
+      cls += ' selected';
+    }
+    const dots = activity.has(key) ? '<div class="cal-dots"><span class="cal-dot-mini"></span></div>' : '<div class="cal-dots"></div>';
+    cells += `<div class="${cls}" data-key="${key}">${d}${dots}</div>`;
+  }
+  const rem = (firstDow + daysInM) % 7;
+  if (rem !== 0) for (let d = 1; d <= 7 - rem; d++) cells += `<div class="cal-cell other">${d}</div>`;
+  const grid = document.getElementById('dmDays');
+  grid.innerHTML = cells;
+  grid.querySelectorAll('.cal-cell:not(.other)').forEach(c => {
+    c.addEventListener('click', () => calModalDayClick(c.dataset.key));
+  });
+}
+
+function calModalDayClick(key){
+  const [y, m, d] = key.split('-').map(Number);
+  const clicked = new Date(y, m - 1, d);
+  if (selMode === 'single'){
+    pickStart = clicked; pickEnd = clicked;
+    applySelection();
+    return;
+  }
+  if (!pickStart || (pickStart && pickEnd)){
+    pickStart = clicked; pickEnd = null;
+  } else if (clicked < pickStart){
+    pickEnd = pickStart; pickStart = clicked;
+  } else {
+    pickEnd = clicked;
+  }
+  renderModalCal();
+  renderRangeBoxes();
+}
+
+function setQuickPreset(preset){
+  const t = today();
+  if (preset === 'today'){
+    selMode = 'single'; pickStart = new Date(t); pickEnd = new Date(t);
+  } else if (preset === 'yesterday'){
+    const y = new Date(t); y.setDate(y.getDate() - 1);
+    selMode = 'single'; pickStart = y; pickEnd = new Date(y);
+  } else if (preset === 'week'){
+    const dow = t.getDay();
+    const mon = new Date(t); mon.setDate(t.getDate() - (dow === 0 ? 6 : dow - 1));
+    selMode = 'range'; pickStart = mon; pickEnd = new Date(t);
+  } else if (preset === 'month'){
+    selMode = 'range';
+    pickStart = new Date(t.getFullYear(), t.getMonth(), 1);
+    pickEnd = new Date(t);
+  }
+  applySelection();
+}
+
+function applySelection(){
+  if (!pickStart) return;
+  appliedStart = pickStart;
+  appliedEnd = pickEnd || pickStart;
+  renderDateTrigger();
+  renderDaySummary();
+  closeDateModal();
+}
+
+async function renderDaySummary(){
+  const startKey = dateKey(appliedStart), endKey = dateKey(appliedEnd);
+  const isSingle = startKey === endKey;
+  document.getElementById('dayHdrDate').textContent = isSingle
+    ? fmtShort(appliedStart)
+    : `${fmtShort(appliedStart)} – ${fmtShort(appliedEnd)}`;
+  document.getElementById('dayHdrBadge').textContent = isSingle && startKey === dateKey(today()) ? 'Today' : '';
+
+  const list = document.getElementById('dayDocList');
+  let data;
+  try {
+    data = await api(`/api/so-sto/summary?start=${startKey}&end=${endKey}`);
+  } catch (e) {
+    document.getElementById('dayStatRow').innerHTML = '';
+    list.innerHTML = `<div class="day-empty">Couldn't load activity: ${esc(e.message)}</div>`;
+    return;
+  }
+
+  document.getElementById('dayStatRow').innerHTML = `
+    <div class="stat-tile acc-amber"><div class="n">${data.authorized}</div><div class="l">Authorized</div></div>
+    <div class="stat-tile acc-teal"><div class="n">${data.dispatched}</div><div class="l">Dispatched</div></div>
+    <div class="stat-tile acc-green"><div class="n">${data.invoiced}</div><div class="l">Invoiced</div></div>
+  `;
+
+  const docs = data.docs || [];
+  if (!docs.length){
+    list.innerHTML = `<div class="day-empty">No SO/STO activity recorded for ${isSingle ? 'this day' : 'this period'}</div>`;
+    return;
+  }
+  list.innerHTML = docs.map(a => {
+    const dateLbl = isSingle ? '' : `<div class="day-doc-date">${esc(a.dateKey)}</div>`;
+    return `
+    <div class="day-doc" data-no="${esc(a.no)}">
+      ${dateLbl}
+      <div class="day-doc-top">
+        <span class="day-doc-no">${esc(a.no)}</span>
+        <span class="rcard-type">${esc(a.type)}</span>
+      </div>
+      <div class="day-doc-evt">${esc(a.text)}</div>
+    </div>
+  `;
+  }).join('');
+  list.querySelectorAll('.day-doc').forEach(c => {
+    c.addEventListener('click', () => openDetail(c.dataset.no, 'home'));
+  });
+}
+
+// ---- Item watchlist ----
+function renderWatchCard(w, i, manage){
+  const matches = w.matches || [];
+  const matchesHtml = matches.length
+    ? matches.map(m => `
+        <div class="watch-match-row" data-no="${esc(m.no)}">
+          <span class="watch-match-no">${esc(m.no)}</span>
+          <span class="rcard-type">${esc(m.type)}</span>
+          ${pill(m.orderStatus)}${pill(m.packslipStatus)}
+          <span class="watch-match-inv">Inv: ${m.invoiceStatus === 'Invoiced' ? esc(m.invoiceNo) : 'Not Invoiced'}</span>
+        </div>
+      `).join('')
+    : '<div class="watch-no-match">Not seen in any SO/STO yet</div>';
+  const producedBlock = w.status === 'Produced'
+    ? `<div class="watch-produced-note">&#10003; Marked Produced${manage ? ` <span class="watch-reopen-link" data-reopen="${w.id}">Reopen</span>` : ''}</div>`
+    : (manage ? `<button type="button" class="watch-produced-btn" data-produce="${w.id}">&#10003; Mark as Produced</button>` : '');
+  return `
+    <div class="watch-card">
+      <div class="watch-top">
+        <div>
+          <div class="watch-code">${esc(w.code)}</div>
+          <div class="watch-desc">${esc(w.desc)}</div>
+        </div>
+        <button type="button" class="watch-remove" data-idx="${w.id}" title="Stop watching">&times;</button>
+      </div>
+      <div class="watch-meta">
+        ${pill(w.priority)}
+        ${w.status === 'Produced' ? pill('Produced') : pill('Open')}
+        <span class="watch-cat-badge">${esc(w.cat)}</span>
+        <span class="watch-qty-badge">${w.qty ? `Qty: ${w.qty}` : 'Any qty'}</span>
+      </div>
+      ${matchesHtml}
+      ${producedBlock}
+    </div>
+  `;
+}
+
+async function renderWatchlist(){
+  const el = document.getElementById('watchList');
+  let data;
+  try {
+    data = await api('/api/so-sto/watchlist');
+  } catch (e) {
+    el.innerHTML = `<div class="day-empty">Couldn't load watchlist: ${esc(e.message)}</div>`;
+    return;
+  }
+  const watchlist = data.watchlist || [];
+  document.getElementById('watchCount').textContent = watchlist.length;
+  if (!watchlist.length){
+    el.innerHTML = '<div class="day-empty">Not watching any items yet — tap "+ Watch an item" above</div>';
+    return;
+  }
+  el.innerHTML = watchlist.map(w => renderWatchCard(w, w.id, CAN_MANAGE_PRODUCTION)).join('');
+  el.querySelectorAll('.watch-remove').forEach(b => {
+    b.addEventListener('click', async () => {
+      try { await api(`/api/so-sto/watchlist/${b.dataset.idx}`, { method: 'DELETE' }); renderWatchlist(); }
+      catch (e) { toast(e.message); }
+    });
+  });
+  el.querySelectorAll('.watch-match-row').forEach(row => {
+    row.addEventListener('click', () => openDetail(row.dataset.no, 'alerts'));
+  });
+  el.querySelectorAll('[data-produce]').forEach(b => {
+    b.addEventListener('click', async () => {
+      try {
+        await api(`/api/so-sto/watchlist/${b.dataset.produce}/produce`, { method: 'POST' });
+        renderWatchlist();
+        toast('Marked as Produced — the requester will see it as Closed');
+      } catch (e) { toast(e.message); }
+    });
+  });
+  el.querySelectorAll('[data-reopen]').forEach(link => {
+    link.addEventListener('click', async () => {
+      try { await api(`/api/so-sto/watchlist/${link.dataset.reopen}/reopen`, { method: 'POST' }); renderWatchlist(); }
+      catch (e) { toast(e.message); }
+    });
+  });
+}
+
+// ---- Item search modal ----
+let imSelected = null, imPriority = 'Normal', imSearchDebounce = null;
+
+function openItemModal(){
+  imSelected = null;
+  document.getElementById('imSearchInput').value = '';
+  document.getElementById('imQty').value = '';
+  imPriority = 'Normal';
+  document.querySelectorAll('#imPriorityRow .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.val === 'Normal'));
+  document.getElementById('imSelectedCard').classList.remove('show');
+  renderImResults('');
+  updateImAddBtnState();
+  document.getElementById('itemModalBackdrop').classList.add('open');
+  document.getElementById('imSearchInput').focus();
+}
+function closeItemModal(){
+  document.getElementById('itemModalBackdrop').classList.remove('open');
+}
+async function renderImResults(term){
+  const el = document.getElementById('imResults');
+  let items;
+  try {
+    const data = await api(`/api/so-sto/items?q=${encodeURIComponent(term)}`);
+    items = data.items || [];
+  } catch (e) {
+    el.innerHTML = `<div class="im-empty">Search failed: ${esc(e.message)}</div>`;
+    return;
+  }
+  if (!items.length){
+    el.innerHTML = `<div class="im-empty">No items match "${esc(term)}"</div>`;
+    return;
+  }
+  el.innerHTML = items.map(it => `
+    <div class="im-result-row${imSelected && imSelected.code === it.code ? ' selected' : ''}" data-code="${esc(it.code)}">
+      <div class="im-r-code">${esc(it.code)}</div>
+      <div class="im-r-desc">${esc(it.desc)}</div>
+      <div class="im-r-cat">${esc(it.cat)} &middot; ${esc(it.uom)}</div>
+    </div>
+  `).join('');
+  el.querySelectorAll('.im-result-row').forEach(row => {
+    row.addEventListener('click', () => selectImItem(row.dataset.code, items));
+  });
+}
+function selectImItem(code, items){
+  imSelected = items.find(it => it.code === code) || null;
+  renderImResults(document.getElementById('imSearchInput').value);
+  const card = document.getElementById('imSelectedCard');
+  if (imSelected){
+    document.getElementById('imSelCode').textContent = imSelected.code;
+    document.getElementById('imSelDesc').textContent = `${imSelected.desc} · ${imSelected.cat}`;
+    card.classList.add('show');
+  } else {
+    card.classList.remove('show');
+  }
+  updateImAddBtnState();
+}
+function updateImAddBtnState(){
+  document.getElementById('imAddBtn').disabled = !imSelected;
+}
+
+// ---- View / tab switching ----
+const els = {
+  q: document.getElementById('q'),
+  toggle: document.getElementById('typeToggle'),
+  count: document.getElementById('resultsCount'),
+  list: document.getElementById('resultsList'),
+  viewHome: document.getElementById('view-home'),
+  viewSearch: document.getElementById('view-search'),
+  viewAlerts: document.getElementById('view-alerts'),
+  viewSettings: document.getElementById('view-settings'),
+  viewDetail: document.getElementById('view-detail'),
+  toast: document.getElementById('toast'),
+};
+let typeFilter = 'ALL';
+let defaultLanding = localStorage.getItem('so_sto_landing') || 'home';
+let searchDebounce = null;
+
+function showView(name){
+  els.viewHome.classList.toggle('active', name === 'home');
+  els.viewSearch.classList.toggle('active', name === 'search');
+  els.viewAlerts.classList.toggle('active', name === 'alerts');
+  els.viewSettings.classList.toggle('active', name === 'settings');
+  els.viewDetail.classList.remove('active');
+  document.querySelectorAll('#tabbar .tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+  document.querySelector('.screen').scrollTop = 0;
+}
+document.getElementById('tabbar').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  showView(tab.dataset.view);
+});
+els.q.addEventListener('focus', () => showView('search'));
+
+async function renderList(){
+  const term = els.q.value.trim();
+  let data;
+  try {
+    data = await api(`/api/so-sto/search?q=${encodeURIComponent(term)}&type=${typeFilter}`);
+  } catch (e) {
+    els.count.textContent = '';
+    els.list.innerHTML = `<div class="empty-state"><div>Search failed: ${esc(e.message)}</div></div>`;
+    return;
+  }
+  const rows = data.records || [];
+  els.count.textContent = term || typeFilter !== 'ALL'
+    ? `${rows.length} match${rows.length === 1 ? '' : 'es'}`
+    : `${rows.length} recent records`;
+
+  if (!rows.length){
+    els.list.innerHTML = `<div class="empty-state">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <div>No SO/STO found for "${esc(term)}"<br>Check the number and try again</div>
+    </div>`;
+    return;
+  }
+  els.list.innerHTML = rows.map(r => `
+    <div class="rcard" data-no="${esc(r.no)}">
+      <div class="rcard-top">
+        <span class="rcard-no">${esc(r.no)}</span>
+        <span class="rcard-type">${esc(r.type)}</span>
+      </div>
+      <div class="rcard-sub">${esc(r.party)} &middot; ${esc(r.date)}</div>
+      <div class="pill-row">
+        ${pill(r.orderStatus)}${pill(r.packslip.status)}${pill(r.invoice.status)}
+      </div>
+    </div>
+  `).join('');
+  els.list.querySelectorAll('.rcard').forEach(c => {
+    c.addEventListener('click', () => openDetail(c.dataset.no));
+  });
+}
+
+async function openDetail(no, origin){
+  origin = ['home', 'alerts', 'settings'].includes(origin) ? origin : 'search';
+  const originLabel = { home:'Home', alerts:'Alerts', settings:'Settings', search:'search' }[origin];
+
+  let r;
+  try {
+    r = await api(`/api/so-sto/doc/${encodeURIComponent(no)}`);
+  } catch (e) {
+    toast(`Couldn't load ${no}: ${e.message}`);
+    return;
+  }
+  const shippedPct = r.orderedQty ? Math.round((r.packslip.shippedQty / r.orderedQty) * 100) : 0;
+
+  els.viewDetail.innerHTML = `
+    <div class="dback" id="backBtn">&#8592; Back to ${esc(originLabel)}</div>
+    <div class="dhead">
+      <div class="dhead-no">${esc(r.no)} <span class="rcard-type" style="vertical-align:middle;">${esc(r.type)}</span></div>
+      <div class="dhead-sub">${esc(r.party)} &middot; ${esc(r.place)}</div>
+    </div>
+
+    <div class="pill-row">${pill(r.orderStatus)}${pill(r.packslip.status)}${pill(r.invoice.status)}</div>
+
+    <div class="dgrid">
+      <div><div class="dg-lbl">${r.type === 'STO' ? 'STO' : 'Order'} Date</div><div class="dg-val mono">${esc(r.date)}</div></div>
+      <div><div class="dg-lbl">Required Date</div><div class="dg-val mono">${esc(r.required)}</div></div>
+      <div><div class="dg-lbl">${esc(r.partyRole)}</div><div class="dg-val">${esc(r.party)}</div></div>
+      <div><div class="dg-lbl">${r.type === 'STO' ? 'WH Supervisor' : 'Sales Person'}</div><div class="dg-val">${esc(r.person)}</div></div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-top">
+        <div class="stage-name"><span class="stage-icon" style="background:var(--st-amber-bg);color:var(--st-amber);">&#128196;</span>Order Status</div>
+        ${pill(r.orderStatus)}
+      </div>
+      <div class="stage-fields">
+        <div class="sf-row"><span class="sf-k">Ordered Qty</span><span class="sf-v">${r.orderedQty}</span></div>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-top">
+        <div class="stage-name"><span class="stage-icon" style="background:var(--st-teal-bg);color:var(--st-teal);">&#128230;</span>Packslip</div>
+        ${pill(r.packslip.status)}
+      </div>
+      <div class="stage-fields">
+        <div class="sf-row"><span class="sf-k">Packslip No.</span><span class="sf-v">${esc(r.packslip.no)}</span></div>
+        <div class="sf-row"><span class="sf-k">Shipped Date</span><span class="sf-v">${esc(r.packslip.shippedDate)}</span></div>
+      </div>
+      <div class="qty-bar">
+        <div class="qty-track"><div class="qty-fill" style="width:${shippedPct}%"></div></div>
+        <div class="qty-lbl"><span>Shipped ${r.packslip.shippedQty} / ${r.orderedQty}</span><span>${shippedPct}%</span></div>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-top">
+        <div class="stage-name"><span class="stage-icon" style="background:var(--st-green-bg);color:var(--st-green);">&#8377;</span>Invoice</div>
+        ${pill(r.invoice.status)}
+      </div>
+      <div class="stage-fields">
+        <div class="sf-row"><span class="sf-k">Invoice No.</span><span class="sf-v">${esc(r.invoice.no)}</span></div>
+        <div class="sf-row"><span class="sf-k">Invoice Date</span><span class="sf-v">${esc(r.invoice.date)}</span></div>
+        <div class="sf-row"><span class="sf-k">Invoice Value</span><span class="sf-v">${fmtCurrency(r.invoice.value)}</span></div>
+      </div>
+    </div>
+
+    <div class="section-hdr">Line Items (${r.items.length})</div>
+    <table class="items-table">
+      <thead><tr><th>Item</th><th class="num">Qty</th></tr></thead>
+      <tbody>
+        ${r.items.map(it => `<tr>
+          <td><div class="it-name">${esc(it.name)}</div><div class="it-code">${esc(it.code)}</div></td>
+          <td class="num">${it.qty}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <div class="section-hdr">History Log</div>
+    <div class="tl">
+      ${r.history.length ? r.history.map(h => `
+        <div class="tl-item done">
+          <div class="tl-dot"></div>
+          <div class="tl-when">${esc(h.when)}</div>
+          <div class="tl-what">${esc(h.what)}</div>
+        </div>
+      `).join('') : '<div class="tl-empty">No changes recorded yet — history only tracks what happens after the first sync.</div>'}
+    </div>
+  `;
+  document.getElementById('backBtn').addEventListener('click', () => showView(origin));
+  els.viewHome.classList.remove('active');
+  els.viewSearch.classList.remove('active');
+  els.viewAlerts.classList.remove('active');
+  els.viewSettings.classList.remove('active');
+  els.viewDetail.classList.add('active');
+  els.viewDetail.parentElement.scrollTop = 0;
+}
+
+function toast(msg){
+  els.toast.textContent = msg;
+  els.toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => els.toast.classList.remove('show'), 2600);
+}
+
+els.q.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(renderList, 180);
+});
+els.toggle.addEventListener('click', e => {
+  const btn = e.target.closest('.tt-btn');
+  if (!btn) return;
+  els.toggle.querySelectorAll('.tt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  typeFilter = btn.dataset.t;
+  renderList();
+});
+
+function tickClock(){
+  const d = new Date();
+  const h = d.getHours() % 12 || 12, m = String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('clk').textContent = `${h}:${m}`;
+}
+tickClock(); setInterval(tickClock, 15000);
+
+// ---- Sync ----
+function renderSyncLabel(info){
+  const label = info && info.synced_at
+    ? `Synced <b>${esc(info.rows_so)}</b> SO + <b>${esc(info.rows_sto)}</b> STO lines · ${esc(info.synced_at.replace('T', ' '))}`
+    : 'Not synced yet — tap Sync Now';
+  document.getElementById('syncLabel').innerHTML = label;
+  document.getElementById('setLastSync').textContent = info && info.synced_at ? info.synced_at.replace('T', ' ') : 'never';
+}
+async function loadLastSync(){
+  try { renderSyncLabel(await api('/api/so-sto/last-sync')); } catch (e) {}
+}
+async function doSync(btns){
+  btns.forEach(b => { b.disabled = true; b.textContent = 'Syncing…'; });
+  try {
+    const info = await api('/api/so-sto/sync', { method: 'POST' });
+    renderSyncLabel(info);
+    Object.keys(monthActivityCache).forEach(k => delete monthActivityCache[k]);
+    toast(`Sync complete — ${info.changes} change${info.changes === 1 ? '' : 's'} found`);
+    renderDaySummary();
+    renderList();
+    renderWatchlist();
+  } catch (e) {
+    toast(`Sync failed: ${e.message}`);
+  } finally {
+    btns.forEach(b => { b.disabled = false; b.textContent = 'Sync Now'; });
+  }
+}
+document.getElementById('syncNowBtn').addEventListener('click', () => {
+  doSync([document.getElementById('syncNowBtn'), document.getElementById('setSyncNowBtn')]);
+});
+document.getElementById('setSyncNowBtn').addEventListener('click', () => {
+  doSync([document.getElementById('syncNowBtn'), document.getElementById('setSyncNowBtn')]);
+});
+
+// ---- Settings ----
+function wireSegRow(rowId, onPick){
+  const row = document.getElementById(rowId);
+  row.addEventListener('click', e => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    row.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    onPick(btn.dataset.val);
+  });
+}
+(function initThemeRow(){
+  const current = localStorage.getItem('pp_theme') || 'light';
+  document.querySelectorAll('#setThemeRow .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.val === current));
+})();
+wireSegRow('setThemeRow', val => {
+  document.documentElement.classList.remove('theme-light', 'theme-dark');
+  document.documentElement.classList.add('theme-' + val);
+  localStorage.setItem('pp_theme', val);
+  toast(`Theme set to ${val[0].toUpperCase()}${val.slice(1)}`);
+});
+(function initLandingRow(){
+  document.querySelectorAll('#setLandingRow .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.val === defaultLanding));
+})();
+wireSegRow('setLandingRow', val => {
+  defaultLanding = val;
+  localStorage.setItem('so_sto_landing', val);
+  toast(`You'll land on ${val === 'home' ? 'the Calendar' : 'Search'} next time you sign in`);
+});
+document.querySelectorAll('#view-settings .tsw input').forEach(chk => {
+  chk.addEventListener('change', () => {
+    const label = chk.closest('.toggle-row').querySelector('.toggle-text b').textContent;
+    toast(`${label} alerts ${chk.checked ? 'on' : 'off'} (preference only — not wired to a notification channel yet)`);
+  });
+});
+
+// ---- Date picker modal wiring ----
+document.getElementById('dateTriggerBtn').addEventListener('click', openDateModal);
+document.getElementById('dmClose').addEventListener('click', closeDateModal);
+document.getElementById('dateModalBackdrop').addEventListener('click', e => {
+  if (e.target.id === 'dateModalBackdrop') closeDateModal();
+});
+document.getElementById('dmModeToggle').addEventListener('click', e => {
+  const btn = e.target.closest('.tt-btn');
+  if (!btn) return;
+  document.querySelectorAll('#dmModeToggle .tt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selMode = btn.dataset.mode;
+  document.getElementById('dmRangeRow').style.display = selMode === 'range' ? 'flex' : 'none';
+  if (selMode === 'single') pickEnd = pickStart;
+  renderModalCal();
+  renderRangeBoxes();
+});
+document.getElementById('dmPills').addEventListener('click', e => {
+  const pill = e.target.closest('.dm-pill');
+  if (!pill) return;
+  setQuickPreset(pill.dataset.preset);
+});
+document.getElementById('dmPrev').addEventListener('click', () => {
+  dmMonth--; if (dmMonth < 0) { dmMonth = 11; dmYear--; }
+  renderModalCal();
+});
+document.getElementById('dmNext').addEventListener('click', () => {
+  dmMonth++; if (dmMonth > 11) { dmMonth = 0; dmYear++; }
+  renderModalCal();
+});
+document.getElementById('dmClear').addEventListener('click', () => {
+  pickStart = null; pickEnd = null;
+  renderModalCal();
+  renderRangeBoxes();
+});
+document.getElementById('dmApply').addEventListener('click', applySelection);
+document.getElementById('jumpTodayBtn').addEventListener('click', () => {
+  pickStart = today(); pickEnd = today(); selMode = 'single';
+  applySelection();
+});
+
+// ---- Item watchlist modal wiring ----
+document.getElementById('addWatchBtn').addEventListener('click', openItemModal);
+document.getElementById('imClose').addEventListener('click', closeItemModal);
+document.getElementById('itemModalBackdrop').addEventListener('click', e => {
+  if (e.target.id === 'itemModalBackdrop') closeItemModal();
+});
+document.getElementById('imSearchInput').addEventListener('input', e => {
+  clearTimeout(imSearchDebounce);
+  const val = e.target.value;
+  imSearchDebounce = setTimeout(() => renderImResults(val), 180);
+});
+wireSegRow('imPriorityRow', val => { imPriority = val; });
+document.getElementById('imAddBtn').addEventListener('click', async () => {
+  if (!imSelected) return;
+  const qtyVal = document.getElementById('imQty').value;
+  try {
+    await api('/api/so-sto/watchlist', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: imSelected.code, desc: imSelected.desc, cat: imSelected.cat,
+        qty: qtyVal ? parseInt(qtyVal, 10) : null, priority: imPriority,
+      }),
+    });
+    closeItemModal();
+    renderWatchlist();
+    toast(`Watching ${imSelected.code}`);
+  } catch (e) {
+    toast(`Couldn't add: ${e.message}`);
+  }
+});
+
+// ---- Init ----
+showView(defaultLanding);
+renderDateTrigger();
+loadLastSync();
+renderDaySummary();
+renderList();
+if (IS_DEVELOPER){
+  document.getElementById('alertsComingSoon').classList.add('hidden-block');
+  document.getElementById('alertsReal').classList.remove('hidden-block');
+  renderWatchlist();
+}
+</script>
+</body>
+</html>

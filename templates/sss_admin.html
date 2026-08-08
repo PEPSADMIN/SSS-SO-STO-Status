@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SSS — Admin</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+<style>
+    :root {
+        --bg: #ffffff; --text: #0a0e14; --text-mut: #5b6b7c;
+        --border: #e3e7ec; --panel-bg: #f7f8fa; --input-bg: #ffffff; --input-border: #d4dae1;
+        --badge-bg: #eceff3; --badge-text: #33404d; --role-admin-bg: #fdedc8; --role-admin-text: #8a6a1a;
+        --row-btn-bg: #ffffff; --row-btn-hover: #eceff3;
+        --danger-hover-bg: #fde3e3; --danger-hover-border: #f2b8b8; --danger-hover-text: #b3261e;
+        --link: #1c5dab;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    .topbar {
+        display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px;
+        border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 5;
+    }
+    .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; }
+    .brand-mark { width: 26px; height: 26px; border-radius: 8px; background: #2d7dd2; color: #fff;
+        display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 800; }
+    .topbar-right { display: flex; align-items: center; gap: 14px; font-size: .85em; color: var(--text-mut); }
+    .topbar-right a { color: var(--link); text-decoration: none; }
+    .topbar-right a:hover { text-decoration: underline; }
+    .content { max-width: 780px; margin: 0 auto; padding: 26px 20px 60px; }
+    h1 { font-size: 1.3em; margin: 0 0 4px; }
+    .page-sub { color: var(--text-mut); font-size: .85em; margin: 0 0 20px; }
+    .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+    .panel h2 { font-size: 1em; margin: 0 0 4px; }
+    .panel-sub { font-size: .8em; color: var(--text-mut); margin: 0 0 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: .85em; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--text-mut); font-weight: 600; text-transform: uppercase; font-size: .72em; letter-spacing: .04em; }
+    .role-pill { background: var(--badge-bg); color: var(--badge-text); padding: 2px 8px; border-radius: 10px; font-size: .72em; text-transform: uppercase; }
+    .role-pill.admin { background: var(--role-admin-bg); color: var(--role-admin-text); }
+    .muted { color: var(--text-mut); }
+    .row-actions button { background: var(--row-btn-bg); border: 1px solid var(--input-border); color: var(--text);
+        border-radius: 7px; padding: 4px 9px; font-size: .76em; cursor: pointer; }
+    .row-actions button:hover { background: var(--row-btn-hover); }
+    .row-actions .danger:hover { background: var(--danger-hover-bg); border-color: var(--danger-hover-border); color: var(--danger-hover-text); }
+    .inline-form { display: flex; gap: 10px; align-items: end; margin-bottom: 16px; flex-wrap: wrap; }
+    .inline-form-field { flex: 1; min-width: 140px; }
+    .inline-form-field.role-field { flex: 0 0 120px; }
+    label { display: block; font-size: .72em; color: var(--text-mut); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+    input[type=text], input[type=password], input[type=file], select {
+        width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--input-border);
+        background: var(--input-bg); color: var(--text); font-size: .85em; font-family: inherit;
+    }
+    button.primary { background: #3a8bdc; border: none; color: #fff; border-radius: 8px; padding: 9px 18px; font-size: .85em; cursor: pointer; }
+    button.primary:hover { background: #2f78c4; }
+    .msg { font-size: .8em; margin-left: 4px; }
+    .msg.err { color: #c5302f; }
+    .msg.ok { color: #1f8a4c; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="brand"><span class="brand-mark">S</span> SSS Admin</div>
+    <div class="topbar-right">
+        <a href="{{ url_for('so_sto_page') }}">&larr; Back to app</a>
+        <span>{{ user.username }}</span>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</div>
+
+<div class="content">
+    <h1>Admin</h1>
+    <p class="page-sub">Accounts and permissions for SSS — SO / STO Status.</p>
+
+    <div class="panel">
+        <h2>Data files</h2>
+        <p class="panel-sub">Upload the latest export to refresh SO/STO status or the item list. Uploading SO/STO also runs Sync Now automatically.</p>
+        <form class="inline-form" id="uploadForm">
+            <div class="inline-form-field role-field">
+                <label for="uploadKind">File</label>
+                <select id="uploadKind">
+                    <option value="so">Dispatch SO.xls</option>
+                    <option value="sto">Dispach STO.xls</option>
+                    <option value="item_master">Item Master.csv</option>
+                </select>
+            </div>
+            <div class="inline-form-field">
+                <label for="uploadFile">Choose file</label>
+                <input type="file" id="uploadFile" required>
+            </div>
+            <div><button type="submit" class="primary">Upload</button></div>
+            <span class="msg" id="uploadMsg"></span>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>Add user</h2>
+        <form class="inline-form" id="addForm">
+            <div class="inline-form-field">
+                <label for="newUsername">Username</label>
+                <input type="text" id="newUsername" required>
+            </div>
+            <div class="inline-form-field">
+                <label for="newPassword">Password</label>
+                <input type="password" id="newPassword" required>
+            </div>
+            <div class="inline-form-field role-field">
+                <label for="newRole">Role</label>
+                <select id="newRole">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="primary">Add user</button>
+            </div>
+            <span class="msg" id="addMsg"></span>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>Users</h2>
+        <table>
+            <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
+            <tbody id="usersBody"></tbody>
+        </table>
+    </div>
+
+    <div class="panel">
+        <h2>Production Managers</h2>
+        <p class="panel-sub">Grants "Mark as Produced" on the Alerts tab &mdash; separate from the admin role, since not every admin runs production.</p>
+        <form class="inline-form" id="pmAddForm">
+            <div class="inline-form-field">
+                <label for="pmUsername">Username</label>
+                <input type="text" id="pmUsername" required>
+            </div>
+            <div><button type="submit" class="primary">Grant</button></div>
+            <span class="msg" id="pmAddMsg"></span>
+        </form>
+        <table>
+            <thead><tr><th>Username</th><th>Granted by</th><th>Granted at</th><th>Actions</th></tr></thead>
+            <tbody id="pmBody"></tbody>
+        </table>
+    </div>
+
+    <div class="panel">
+        <h2>Developers</h2>
+        <p class="panel-sub">Sees the real Alerts/Watchlist tab while it's still being tested &mdash; everyone else sees "Coming Soon" there.</p>
+        <form class="inline-form" id="devAddForm">
+            <div class="inline-form-field">
+                <label for="devUsername">Username</label>
+                <input type="text" id="devUsername" required>
+            </div>
+            <div><button type="submit" class="primary">Grant</button></div>
+            <span class="msg" id="devAddMsg"></span>
+        </form>
+        <table>
+            <thead><tr><th>Username</th><th>Granted by</th><th>Granted at</th><th>Actions</th></tr></thead>
+            <tbody id="devBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+var USERS = {{ users|tojson }};
+
+function renderUsers() {
+    document.getElementById('usersBody').innerHTML = USERS.map(function (u) {
+        return '<tr data-id="' + u.id + '">' +
+            '<td>' + u.username + '</td>' +
+            '<td><span class="role-pill ' + (u.role === 'admin' ? 'admin' : '') + '">' + u.role + '</span></td>' +
+            '<td class="row-actions"><button type="button" class="danger del-btn">Delete</button></td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="3" class="muted">No users yet.</td></tr>';
+
+    document.querySelectorAll('.del-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id = btn.closest('tr').dataset.id;
+            var u = USERS.find(function (x) { return String(x.id) === id; });
+            if (!confirm('Delete user "' + u.username + '"?')) return;
+            fetch('/api/admin/users/' + id, { method: 'DELETE' }).then(loadUsers);
+        });
+    });
+}
+
+function loadUsers() {
+    return fetch('/api/admin/users_list').then(function (r) { return r.json(); }).then(function (data) {
+        USERS = data.users;
+        renderUsers();
+    });
+}
+
+document.getElementById('addForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('addMsg');
+    msg.textContent = ''; msg.className = 'msg';
+    fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: document.getElementById('newUsername').value.trim(),
+            password: document.getElementById('newPassword').value,
+            role: document.getElementById('newRole').value
+        })
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { msg.textContent = res.j.error || 'Failed to add user'; msg.className = 'msg err'; return; }
+        msg.textContent = 'Added.'; msg.className = 'msg ok';
+        document.getElementById('addForm').reset();
+        loadUsers();
+    });
+});
+
+renderUsers();
+
+// ── Data file upload ──
+document.getElementById('uploadForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('uploadMsg');
+    msg.textContent = ''; msg.className = 'msg';
+    var fileInput = document.getElementById('uploadFile');
+    if (!fileInput.files.length) return;
+    var fd = new FormData();
+    fd.append('kind', document.getElementById('uploadKind').value);
+    fd.append('file', fileInput.files[0]);
+    msg.textContent = 'Uploading…';
+    fetch('/api/so-sto/upload', { method: 'POST', body: fd })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { msg.textContent = res.j.error || 'Upload failed'; msg.className = 'msg err'; return; }
+        msg.textContent = 'Uploaded and synced.'; msg.className = 'msg ok';
+        document.getElementById('uploadForm').reset();
+    });
+});
+
+// ── Production Managers ──
+function renderProductionManagers(list) {
+    document.getElementById('pmBody').innerHTML = list.map(function (m) {
+        return '<tr data-username="' + m.username + '">' +
+            '<td>' + m.username + '</td>' +
+            '<td class="muted">' + (m.granted_by || '') + '</td>' +
+            '<td class="muted">' + (m.granted_at || '') + '</td>' +
+            '<td class="row-actions"><button type="button" class="danger pm-revoke-btn">Revoke</button></td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="4" class="muted">No production managers granted yet.</td></tr>';
+
+    document.querySelectorAll('.pm-revoke-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var username = btn.closest('tr').dataset.username;
+            if (!confirm('Revoke production-manager access for "' + username + '"?')) return;
+            fetch('/api/so-sto/production-managers/' + encodeURIComponent(username), { method: 'DELETE' }).then(loadProductionManagers);
+        });
+    });
+}
+function loadProductionManagers() {
+    return fetch('/api/so-sto/production-managers').then(function (r) { return r.json(); })
+        .then(function (data) { renderProductionManagers(data.production_managers || []); });
+}
+document.getElementById('pmAddForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('pmAddMsg');
+    msg.textContent = ''; msg.className = 'msg';
+    fetch('/api/so-sto/production-managers', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: document.getElementById('pmUsername').value.trim() })
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { msg.textContent = res.j.error || 'Failed'; msg.className = 'msg err'; return; }
+        msg.textContent = 'Granted.'; msg.className = 'msg ok';
+        document.getElementById('pmAddForm').reset();
+        loadProductionManagers();
+    });
+});
+loadProductionManagers();
+
+// ── Developers ──
+function renderDevelopers(list) {
+    document.getElementById('devBody').innerHTML = list.map(function (m) {
+        return '<tr data-username="' + m.username + '">' +
+            '<td>' + m.username + '</td>' +
+            '<td class="muted">' + (m.granted_by || '') + '</td>' +
+            '<td class="muted">' + (m.granted_at || '') + '</td>' +
+            '<td class="row-actions"><button type="button" class="danger dev-revoke-btn">Revoke</button></td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="4" class="muted">No developers granted yet.</td></tr>';
+
+    document.querySelectorAll('.dev-revoke-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var username = btn.closest('tr').dataset.username;
+            if (!confirm('Revoke developer access for "' + username + '"?')) return;
+            fetch('/api/so-sto/developers/' + encodeURIComponent(username), { method: 'DELETE' }).then(loadDevelopers);
+        });
+    });
+}
+function loadDevelopers() {
+    return fetch('/api/so-sto/developers').then(function (r) { return r.json(); })
+        .then(function (data) { renderDevelopers(data.developers || []); });
+}
+document.getElementById('devAddForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('devAddMsg');
+    msg.textContent = ''; msg.className = 'msg';
+    fetch('/api/so-sto/developers', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: document.getElementById('devUsername').value.trim() })
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { msg.textContent = res.j.error || 'Failed'; msg.className = 'msg err'; return; }
+        msg.textContent = 'Granted.'; msg.className = 'msg ok';
+        document.getElementById('devAddForm').reset();
+        loadDevelopers();
+    });
+});
+loadDevelopers();
+</script>
+</body>
+</html>
