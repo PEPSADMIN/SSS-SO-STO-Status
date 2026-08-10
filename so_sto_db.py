@@ -126,16 +126,6 @@ def init_db():
 
         conn.execute(
             """
-            CREATE TABLE IF NOT EXISTS developers (
-                username TEXT PRIMARY KEY,
-                granted_by TEXT,
-                granted_at TEXT
-            )
-            """
-        )
-
-        conn.execute(
-            """
             CREATE TABLE IF NOT EXISTS sync_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 synced_at TEXT NOT NULL,
@@ -147,7 +137,49 @@ def init_db():
             )
             """
         )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+            """
+        )
         conn.commit()
+
+
+# ---------------- app settings (background auto-sync interval) ----------------
+
+DEFAULT_SYNC_INTERVAL_MINUTES = 20
+MIN_SYNC_INTERVAL_MINUTES = 5
+
+
+def get_sync_interval_minutes() -> int:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT value FROM app_settings WHERE key = 'sync_interval_minutes'"
+        ).fetchone()
+    if row and row["value"]:
+        try:
+            return max(MIN_SYNC_INTERVAL_MINUTES, int(row["value"]))
+        except ValueError:
+            pass
+    return DEFAULT_SYNC_INTERVAL_MINUTES
+
+
+def set_sync_interval_minutes(minutes: int) -> int:
+    minutes = max(MIN_SYNC_INTERVAL_MINUTES, int(minutes))
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO app_settings (key, value) VALUES ('sync_interval_minutes', ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            """,
+            (str(minutes),),
+        )
+        conn.commit()
+    return minutes
 
 
 # ---------------- snapshot ----------------
@@ -446,38 +478,6 @@ def grant_production_manager(username: str, granted_by: str):
 def revoke_production_manager(username: str):
     with _connect() as conn:
         conn.execute("DELETE FROM production_managers WHERE username = ?", (username,))
-        conn.commit()
-
-
-# ---------------- developers (gates the real Alerts/Watchlist tab; ----------
-# ---------------- everyone else sees a "Coming Soon" placeholder) -----------
-
-def list_developers():
-    with _connect() as conn:
-        rows = conn.execute("SELECT * FROM developers ORDER BY username").fetchall()
-        return [dict(r) for r in rows]
-
-
-def is_developer(username: str | None) -> bool:
-    if not username:
-        return False
-    with _connect() as conn:
-        row = conn.execute("SELECT 1 FROM developers WHERE username = ?", (username,)).fetchone()
-        return row is not None
-
-
-def grant_developer(username: str, granted_by: str):
-    with _connect() as conn:
-        conn.execute(
-            "INSERT OR REPLACE INTO developers (username, granted_by, granted_at) VALUES (?, ?, ?)",
-            (username, granted_by, _now()),
-        )
-        conn.commit()
-
-
-def revoke_developer(username: str):
-    with _connect() as conn:
-        conn.execute("DELETE FROM developers WHERE username = ?", (username,))
         conn.commit()
 
 

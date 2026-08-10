@@ -7,8 +7,11 @@ so it doesn't touch Sales Dashboard/Orders/Retailer Map/Announcements or
 whoever currently relies on those.
 
 Data source: D:\\Hari JR. DATA\\Development\\SO\\Input\\Dispatch SO.xls /
-Dispach STO.xls (manually refreshed, read fresh on "Sync Now" — see
-so_sto_ingest.py), plus the Item Master CSV for the item watchlist.
+Dispach STO.xls, plus the Item Master CSV for the item watchlist — see
+so_sto_ingest.py. Kept fresh by a background thread (_background_sync_loop,
+admin-configurable interval, default 20 min) so nobody needs to click Sync
+Now; that button still exists for admins who want to force an immediate
+refresh (e.g. right after manually dropping a new file onto the D: drive).
 
 Run: python app.py  (dev server, plain HTTP — the Cloudflare Tunnel in front
 of this handles public HTTPS, so this app doesn't need its own certs).
@@ -85,7 +88,6 @@ def _render_so_sto():
         "so_sto.html",
         user=user,
         can_manage_production=so_sto_db.is_production_manager(user["username"]),
-        is_developer=so_sto_db.is_developer(user["username"]),
     )
 
 
@@ -110,7 +112,7 @@ def admin_page():
         user=current_user(),
         users=auth_db.list_users(),
         production_managers=so_sto_db.list_production_managers(),
-        developers=so_sto_db.list_developers(),
+        all_tabs=auth_db.ALL_TABS,
     )
 
 
@@ -118,6 +120,12 @@ def admin_page():
 @admin_required
 def admin_users_list():
     return jsonify({"users": auth_db.list_users()})
+
+
+def _tabs_from_body(body: dict) -> list[str] | None:
+    if "tabs" not in body:
+        return None
+    return [t for t in (body.get("tabs") or []) if t in auth_db.ALL_TABS]
 
 
 @app.route("/api/admin/users", methods=["POST"])
@@ -131,8 +139,18 @@ def admin_add_user():
         return jsonify({"error": "username and password are required"}), 400
     if auth_db.get_user(username):
         return jsonify({"error": "that username already exists"}), 400
-    auth_db.create_user(username, password, role=role)
+    auth_db.create_user(username, password, role=role, tabs=_tabs_from_body(body))
     return jsonify({"ok": True}), 201
+
+
+@app.route("/api/admin/users/<int:user_id>", methods=["PATCH"])
+@admin_required
+def admin_update_user(user_id):
+    body = request.get_json(silent=True) or {}
+    role = body.get("role") if body.get("role") in ("admin", "user") else None
+    password = body.get("password") or None
+    auth_db.update_user(user_id, role=role, password=password, tabs=_tabs_from_body(body))
+    return jsonify({"ok": True})
 
 
 @app.route("/api/admin/users/<int:user_id>", methods=["DELETE"])
@@ -192,6 +210,28 @@ def so_sto_upload():
         return jsonify({"ok": True, "result": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/so-sto/sync-interval", methods=["GET", "POST"])
+@admin_required
+def so_sto_sync_interval():
+    """Admin-configurable background auto-sync cadence — the whole point is
+    that nobody, including the admin, should need to remember to hit
+    Sync Now; see _background_sync_loop() below."""
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        try:
+            minutes = int(body.get("minutes"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "minutes must be a number"}), 400
+        if minutes < so_sto_db.MIN_SYNC_INTERVAL_MINUTES:
+            return jsonify({"error": f"minimum is {so_sto_db.MIN_SYNC_INTERVAL_MINUTES} minutes"}), 400
+        saved = so_sto_db.set_sync_interval_minutes(minutes)
+        return jsonify({"minutes": saved})
+    return jsonify({
+        "minutes": so_sto_db.get_sync_interval_minutes(),
+        "min_minutes": so_sto_db.MIN_SYNC_INTERVAL_MINUTES,
+    })
 
 
 @app.route("/api/so-sto/last-sync")
@@ -331,34 +371,56 @@ def so_sto_production_managers_revoke(username):
     return "", 204
 
 
-@app.route("/api/so-sto/developers", methods=["GET", "POST"])
-@admin_required
-def so_sto_developers():
-    if request.method == "POST":
-        body = request.get_json(silent=True) or {}
-        username = (body.get("username") or "").strip()
-        if not username:
-            return jsonify({"error": "username is required"}), 400
-        so_sto_db.grant_developer(username, current_user()["username"])
-        return jsonify({"ok": True}), 201
-    return jsonify({"developers": so_sto_db.list_developers()})
+def _background_sync_loop():
+    """Runs for the lifetime of the process so nobody — including the admin —
+    has to remember to click Sync Now. Interval is re-read from app_settings
+    on every cycle, so a change made via /api/so-sto/sync-interval takes
+    effect starting with the next sleep rather than requiring a restart."""
+    import time
+    while True:
+        try:
+            so_sto_ingest.sync_dispatch_files()
+        except Exception as e:
+            print(f"[SSS] background sync failed: {e}", flush=True)
+        interval_minutes = so_sto_db.get_sync_interval_minutes()
+        time.sleep(interval_minutes * 60)
 
 
-@app.route("/api/so-sto/developers/<username>", methods=["DELETE"])
-@admin_required
-def so_sto_developers_revoke(username):
-    so_sto_db.revoke_developer(username)
-    return "", 204
+def _lan_ip():
+    # No real network traffic — just asks the OS which local interface
+    # it would use to reach an outside address, to find the LAN IP other
+    # devices on the same network should hit instead of localhost.
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
 
 
 if __name__ == "__main__":
-    # Railway (and most hosts) assign the port via $PORT — 5009 is just the
+    # Railway (and most hosts) assign the port via $PORT — 5050 is just the
     # local-dev default when nothing sets it.
-    PORT = int(os.environ.get("PORT", 5009))
+    PORT = int(os.environ.get("PORT", 5050))
+    lan_ip = _lan_ip()
     print("\n" + "-" * 60)
     print("  SSS — SO / STO Status")
-    print(f"  Open : http://localhost:{PORT}")
+    print(f"  Open (this PC) : http://localhost:{PORT}")
+    if lan_ip:
+        print(f"  Open (network) : http://{lan_ip}:{PORT}")
     print("-" * 60 + "\n")
+    # stdout is block-buffered (not line-buffered) once redirected to a file,
+    # as NSSM does for this service's log — without an explicit flush, this
+    # banner can sit unflushed in memory and vanish if the process is later
+    # killed by a service restart, rather than exiting cleanly.
+    import sys
+    sys.stdout.flush()
+
+    import threading
+    threading.Thread(target=_background_sync_loop, daemon=True).start()
 
     from waitress import serve
     serve(app, host="0.0.0.0", port=PORT)

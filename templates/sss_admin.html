@@ -30,7 +30,9 @@
     h1 { font-size: 1.3em; margin: 0 0 4px; }
     .page-sub { color: var(--text-mut); font-size: .85em; margin: 0 0 20px; }
     .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
-    .panel h2 { font-size: 1em; margin: 0 0 4px; }
+    .panel h2, .overlay-card h2 { font-size: 1em; margin: 0 0 4px; }
+    .inline-form-field.field-full { flex-basis: 100%; }
+    .overlay-card .field-spaced { margin-top: 12px; }
     .panel-sub { font-size: .8em; color: var(--text-mut); margin: 0 0 14px; }
     table { width: 100%; border-collapse: collapse; font-size: .85em; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
@@ -55,6 +57,19 @@
     .msg { font-size: .8em; margin-left: 4px; }
     .msg.err { color: #c5302f; }
     .msg.ok { color: #1f8a4c; }
+    .tab-check-row { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    .tab-check { display: flex; align-items: center; gap: 6px; font-size: .82em; text-transform: none;
+        letter-spacing: normal; color: var(--text); font-weight: 400; }
+    .tab-check input { width: auto; }
+    .tabs-cell { font-size: .82em; color: var(--text-mut); }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(10,14,20,.45);
+        align-items: center; justify-content: center; z-index: 50; }
+    .overlay.show { display: flex; }
+    .overlay-card { background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+        padding: 20px; width: 320px; max-width: 92vw; }
+    .overlay-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+    .btn-plain { background: var(--row-btn-bg); border: 1px solid var(--input-border); color: var(--text);
+        border-radius: 7px; padding: 7px 14px; font-size: .85em; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -111,6 +126,10 @@
                     <option value="admin">Admin</option>
                 </select>
             </div>
+            <div class="inline-form-field field-full">
+                <label>Tabs</label>
+                <div class="tab-check-row" id="newUserTabs"></div>
+            </div>
             <div>
                 <button type="submit" class="primary">Add user</button>
             </div>
@@ -120,10 +139,28 @@
 
     <div class="panel">
         <h2>Users</h2>
+        <p class="panel-sub">"Tabs" controls which nav tabs each user sees in the app &mdash; use Edit to change them.</p>
         <table>
-            <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Username</th><th>Role</th><th>Tabs</th><th>Actions</th></tr></thead>
             <tbody id="usersBody"></tbody>
         </table>
+    </div>
+
+    <div class="overlay" id="tabsOverlay">
+        <div class="overlay-card">
+            <h2>Edit user</h2>
+            <p class="panel-sub" id="tabsOverlayUser"></p>
+            <label>Tabs</label>
+            <div class="tab-check-row" id="editUserTabs"></div>
+            <div class="field-spaced">
+                <label for="editPassword">New password (leave blank to keep unchanged)</label>
+                <input type="password" id="editPassword" autocomplete="new-password">
+            </div>
+            <div class="overlay-actions">
+                <button type="button" class="btn-plain" id="tabsCancelBtn">Cancel</button>
+                <button type="button" class="primary" id="tabsSaveBtn">Save</button>
+            </div>
+        </div>
     </div>
 
     <div class="panel">
@@ -143,35 +180,39 @@
         </table>
     </div>
 
-    <div class="panel">
-        <h2>Developers</h2>
-        <p class="panel-sub">Sees the real Alerts/Watchlist tab while it's still being tested &mdash; everyone else sees "Coming Soon" there.</p>
-        <form class="inline-form" id="devAddForm">
-            <div class="inline-form-field">
-                <label for="devUsername">Username</label>
-                <input type="text" id="devUsername" required>
-            </div>
-            <div><button type="submit" class="primary">Grant</button></div>
-            <span class="msg" id="devAddMsg"></span>
-        </form>
-        <table>
-            <thead><tr><th>Username</th><th>Granted by</th><th>Granted at</th><th>Actions</th></tr></thead>
-            <tbody id="devBody"></tbody>
-        </table>
-    </div>
 </div>
 
 <script>
 var USERS = {{ users|tojson }};
+var ALL_TABS = {{ all_tabs|tojson }};
+var TAB_LABELS = { home: 'Home', search: 'Search', alerts: 'Alerts', settings: 'Settings' };
+
+function tabCheckboxesHtml(idPrefix, checkedTabs) {
+    return ALL_TABS.map(function (t) {
+        var checked = checkedTabs.indexOf(t) !== -1 ? ' checked' : '';
+        return '<label class="tab-check"><input type="checkbox" id="' + idPrefix + '-' + t + '" value="' + t + '"' + checked + '> ' + TAB_LABELS[t] + '</label>';
+    }).join('');
+}
+
+document.getElementById('newUserTabs').innerHTML = tabCheckboxesHtml('new', ALL_TABS);
 
 function renderUsers() {
     document.getElementById('usersBody').innerHTML = USERS.map(function (u) {
         return '<tr data-id="' + u.id + '">' +
             '<td>' + u.username + '</td>' +
             '<td><span class="role-pill ' + (u.role === 'admin' ? 'admin' : '') + '">' + u.role + '</span></td>' +
-            '<td class="row-actions"><button type="button" class="danger del-btn">Delete</button></td>' +
+            '<td class="tabs-cell">' + (u.tabs.map(function (t) { return TAB_LABELS[t]; }).join(', ') || 'None') + '</td>' +
+            '<td class="row-actions"><button type="button" class="edit-tabs-btn">Edit tabs</button> <button type="button" class="danger del-btn">Delete</button></td>' +
         '</tr>';
-    }).join('') || '<tr><td colspan="3" class="muted">No users yet.</td></tr>';
+    }).join('') || '<tr><td colspan="4" class="muted">No users yet.</td></tr>';
+
+    document.querySelectorAll('.edit-tabs-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id = btn.closest('tr').dataset.id;
+            var u = USERS.find(function (x) { return String(x.id) === id; });
+            openTabsEditor(u);
+        });
+    });
 
     document.querySelectorAll('.del-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -200,7 +241,8 @@ document.getElementById('addForm').addEventListener('submit', function (e) {
         body: JSON.stringify({
             username: document.getElementById('newUsername').value.trim(),
             password: document.getElementById('newPassword').value,
-            role: document.getElementById('newRole').value
+            role: document.getElementById('newRole').value,
+            tabs: ALL_TABS.filter(function (t) { return document.getElementById('new-' + t).checked; })
         })
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
@@ -212,6 +254,33 @@ document.getElementById('addForm').addEventListener('submit', function (e) {
 });
 
 renderUsers();
+
+// ── Edit tabs modal ──
+var tabsOverlay = document.getElementById('tabsOverlay');
+var editingUserId = null;
+function openTabsEditor(u) {
+    editingUserId = u.id;
+    document.getElementById('tabsOverlayUser').textContent = u.username;
+    document.getElementById('editUserTabs').innerHTML = tabCheckboxesHtml('edit', u.tabs);
+    document.getElementById('editPassword').value = '';
+    tabsOverlay.classList.add('show');
+}
+document.getElementById('tabsCancelBtn').addEventListener('click', function () {
+    tabsOverlay.classList.remove('show');
+});
+document.getElementById('tabsSaveBtn').addEventListener('click', function () {
+    var tabs = ALL_TABS.filter(function (t) { return document.getElementById('edit-' + t).checked; });
+    var body = { tabs: tabs };
+    var password = document.getElementById('editPassword').value;
+    if (password) body.password = password;
+    fetch('/api/admin/users/' + editingUserId, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(function () {
+        tabsOverlay.classList.remove('show');
+        loadUsers();
+    });
+});
 
 // ── Data file upload ──
 document.getElementById('uploadForm').addEventListener('submit', function (e) {
@@ -272,46 +341,6 @@ document.getElementById('pmAddForm').addEventListener('submit', function (e) {
     });
 });
 loadProductionManagers();
-
-// ── Developers ──
-function renderDevelopers(list) {
-    document.getElementById('devBody').innerHTML = list.map(function (m) {
-        return '<tr data-username="' + m.username + '">' +
-            '<td>' + m.username + '</td>' +
-            '<td class="muted">' + (m.granted_by || '') + '</td>' +
-            '<td class="muted">' + (m.granted_at || '') + '</td>' +
-            '<td class="row-actions"><button type="button" class="danger dev-revoke-btn">Revoke</button></td>' +
-        '</tr>';
-    }).join('') || '<tr><td colspan="4" class="muted">No developers granted yet.</td></tr>';
-
-    document.querySelectorAll('.dev-revoke-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var username = btn.closest('tr').dataset.username;
-            if (!confirm('Revoke developer access for "' + username + '"?')) return;
-            fetch('/api/so-sto/developers/' + encodeURIComponent(username), { method: 'DELETE' }).then(loadDevelopers);
-        });
-    });
-}
-function loadDevelopers() {
-    return fetch('/api/so-sto/developers').then(function (r) { return r.json(); })
-        .then(function (data) { renderDevelopers(data.developers || []); });
-}
-document.getElementById('devAddForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var msg = document.getElementById('devAddMsg');
-    msg.textContent = ''; msg.className = 'msg';
-    fetch('/api/so-sto/developers', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: document.getElementById('devUsername').value.trim() })
-    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-      .then(function (res) {
-        if (!res.ok) { msg.textContent = res.j.error || 'Failed'; msg.className = 'msg err'; return; }
-        msg.textContent = 'Granted.'; msg.className = 'msg ok';
-        document.getElementById('devAddForm').reset();
-        loadDevelopers();
-    });
-});
-loadDevelopers();
 </script>
 </body>
 </html>

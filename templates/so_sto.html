@@ -10,6 +10,9 @@
 // switching theme here also applies there and vice versa.
 (function () {
     document.documentElement.classList.add('theme-' + (localStorage.getItem('pp_theme') || 'light'));
+    if (localStorage.getItem('sss_sidebar_collapsed') === '1') {
+        document.documentElement.classList.add('sidebar-collapsed');
+    }
 })();
 </script>
 <style>
@@ -51,30 +54,53 @@
 html,body{ margin:0; padding:0; }
 body{
   font-family:var(--font-ui); background:linear-gradient(180deg,var(--page),var(--page2));
-  color:var(--ink); min-height:100vh;
+  color:var(--ink); height:100vh; overflow:hidden;
   display:flex; flex-direction:column; align-items:center;
-  padding:24px 16px 48px;
+  padding:0;
 }
 ::selection{ background:var(--accent-dim); }
 button{ font-family:inherit; }
 
-/* ---------- Phone frame ---------- */
-.phone-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+/* ---------- App frame ----------
+   Mobile-first: below 768px this is the phone experience (edge-to-edge,
+   bottom tab bar). At 768px+ ("system") a left-hand sidebar nav replaces
+   the bottom tab bar — see the min-width:768px block below. Fills the full
+   viewport at any width, no gutters. No fake notch/status-bar — those were
+   only useful while reviewing this as a design mockup. */
+.phone-wrap{ display:flex; flex-direction:column; align-items:center; width:100%; height:100vh; }
+.app-frame{
+  width:100%; height:100vh; display:flex;
+  background:var(--surface); overflow:hidden;
+}
 .phone{
-  width:390px; max-width:92vw; height:844px; max-height:92vh;
-  background:var(--surface); border-radius:44px; border:1px solid var(--border);
-  box-shadow:var(--shadow);
+  flex:1; min-width:0; height:100vh;
+  background:var(--surface);
   overflow:hidden; position:relative; display:flex; flex-direction:column;
 }
-.notch{
-  position:absolute; top:0; left:50%; transform:translateX(-50%);
-  width:120px; height:24px; background:var(--page2); border-radius:0 0 16px 16px; z-index:30;
-}
-.status-bar{
-  height:40px; flex-shrink:0; display:flex; align-items:flex-end; justify-content:space-between;
-  padding:0 22px 6px; font-size:.72rem; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums;
-}
+.notch, .status-bar{ display:none; }
 .app-shell{ display:flex; flex-direction:column; flex:1; min-height:0; }
+
+/* ---------- Sidebar nav (system/desktop only) ---------- */
+.sidebar-nav{
+  display:none; flex-direction:column; align-items:stretch; width:210px; flex-shrink:0;
+  background:var(--surface2); border-right:1px solid var(--border);
+  padding:14px 10px; gap:3px; transition:width .15s ease;
+}
+html.sidebar-collapsed .sidebar-nav{ width:60px; }
+.sidebar-toggle{
+  align-self:flex-start; border:none; background:none; color:var(--ink-dim); cursor:pointer;
+  padding:6px; margin-bottom:12px; font-size:.85rem; border-radius:6px;
+}
+.sidebar-toggle:hover{ background:var(--surface); color:var(--ink); }
+.side-tab{
+  display:flex; align-items:center; gap:11px; padding:10px 11px; border-radius:10px;
+  border:none; background:none; color:var(--ink-mut); font-size:.82rem; font-weight:600; cursor:pointer;
+  white-space:nowrap; overflow:hidden; text-align:left; text-decoration:none;
+}
+.side-tab .side-icon{ font-size:1.05rem; flex-shrink:0; width:18px; text-align:center; }
+.side-tab.active{ background:var(--accent-dim); color:var(--accent); }
+.side-tab:hover:not(.active){ background:var(--surface); }
+html.sidebar-collapsed .side-label{ display:none; }
 
 /* App chrome */
 .appbar{
@@ -249,6 +275,13 @@ button{ font-family:inherit; }
   width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--border);
   background:var(--surface2); color:var(--ink); font-size:.82rem; font-family:var(--font-ui); box-sizing:border-box;
 }
+.sync-interval-row{ display:flex; gap:8px; align-items:center; }
+.sync-interval-row .set-field-input{ flex:1; }
+.sync-interval-btn{
+  flex-shrink:0; padding:9px 14px; border-radius:9px; border:none; background:var(--accent); color:#fff;
+  font-size:.78rem; font-weight:700; cursor:pointer;
+}
+.sync-interval-btn:disabled{ opacity:.5; cursor:default; }
 .seg-row{ display:flex; gap:6px; }
 .seg-btn{
   flex:1; text-align:center; border:1px solid var(--border); background:var(--surface2); color:var(--ink-mut);
@@ -451,40 +484,49 @@ button{ font-family:inherit; }
 .day-doc-date{ font-size:.6rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:5px; }
 .day-empty{ text-align:center; padding:26px 10px; color:var(--ink-dim); font-size:.78rem; }
 
-.coming-soon{ text-align:center; padding:70px 20px 20px; color:var(--ink-dim); }
-.hidden-block{ display:none; }
-.coming-soon-icon{ font-size:2rem; margin-bottom:14px; opacity:.5; }
-.coming-soon-title{ font-size:1rem; font-weight:800; color:var(--ink-mut); margin-bottom:6px; }
-.coming-soon-sub{ font-size:.8rem; line-height:1.5; max-width:26ch; margin:0 auto; }
-
 .tabbar{
   display:flex; border-top:1px solid var(--border); background:var(--surface); flex-shrink:0;
 }
 .tab{
   flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:9px 0 12px;
   color:var(--ink-dim); font-size:.62rem; font-weight:700; background:none; border:none; cursor:pointer;
+  text-decoration:none;
 }
 .tab.active{ color:var(--accent); }
 
 @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
 
-/* On an actual phone, drop the decorative "phone mockup" frame (notch, fake
-   status bar, centered card with margins) and just fill the real screen —
-   that chrome only made sense when reviewing this on a desktop monitor. */
-@media (max-width: 480px){
-  body{ padding:0; }
-  .phone-wrap{ width:100%; }
-  .phone{
-    width:100%; max-width:none; height:100vh; max-height:none;
-    border-radius:0; border:none; box-shadow:none;
-  }
-  .notch, .status-bar{ display:none; }
+/* System/desktop: sidebar nav replaces the bottom tab bar. The frame fills
+   the whole window at any width — no fixed cap, no gutters. */
+@media (min-width: 768px){
+  .tabbar{ display:none; }
+  .sidebar-nav{ display:flex; }
 }
 </style>
 </head>
-<body data-can-manage-production="{{ 'true' if can_manage_production else 'false' }}" data-is-developer="{{ 'true' if is_developer else 'false' }}">
+<body data-can-manage-production="{{ 'true' if can_manage_production else 'false' }}" data-tabs="{{ user.tabs|join(',') }}">
 
 <div class="phone-wrap">
+  <div class="app-frame">
+  <!-- SIDEBAR NAV (system/desktop, 768px+) -->
+  <nav class="sidebar-nav" id="sidebarNav">
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Collapse sidebar">&#10094;</button>
+    {% if 'home' in user.tabs %}
+    <button type="button" class="side-tab" data-view="home"><span class="side-icon">&#127968;</span><span class="side-label">Home</span></button>
+    {% endif %}
+    {% if 'search' in user.tabs %}
+    <button type="button" class="side-tab" data-view="search"><span class="side-icon">&#128269;</span><span class="side-label">Search</span></button>
+    {% endif %}
+    {% if 'alerts' in user.tabs %}
+    <button type="button" class="side-tab" data-view="alerts"><span class="side-icon">&#128276;</span><span class="side-label">Alerts</span></button>
+    {% endif %}
+    {% if 'settings' in user.tabs %}
+    <button type="button" class="side-tab" data-view="settings"><span class="side-icon">&#9881;&#65039;</span><span class="side-label">Settings</span></button>
+    {% endif %}
+    {% if user.role == 'admin' %}
+    <a class="side-tab" href="{{ url_for('admin_page') }}"><span class="side-icon">&#128451;&#65039;</span><span class="side-label">CMS</span></a>
+    {% endif %}
+  </nav>
   <div class="phone">
     <div class="notch"></div>
     <div class="status-bar"><span id="clk">9:41</span><span>&#128246; &#128225; &#128267;</span></div>
@@ -518,7 +560,9 @@ button{ font-family:inherit; }
         <div class="sync-strip">
           <span class="sync-dot"></span>
           <span id="syncLabel">Not synced yet</span>
+          {% if user.role == 'admin' %}
           <button type="button" class="sync-refresh" id="syncNowBtn">Sync Now</button>
+          {% endif %}
         </div>
       </div>
 
@@ -551,17 +595,10 @@ button{ font-family:inherit; }
 
         <!-- ALERTS / ITEM WATCHLIST VIEW -->
         <div class="view" id="view-alerts">
-          <div id="alertsComingSoon" class="coming-soon">
-            <div class="coming-soon-icon">&#128276;</div>
-            <div class="coming-soon-title">Coming Soon</div>
-            <div class="coming-soon-sub">Item alerts and watchlists are still being tested. This tab will open up once it's ready.</div>
-          </div>
-          <div id="alertsReal" class="hidden-block">
-            <button type="button" class="add-watch-btn" id="addWatchBtn">&#43; Watch an item</button>
+          <button type="button" class="add-watch-btn" id="addWatchBtn">&#43; Watch an item</button>
 
-            <div class="chip-lbl">Watchlist (<span id="watchCount">0</span>)</div>
-            <div id="watchList"></div>
-          </div>
+          <div class="chip-lbl">Watchlist (<span id="watchCount">0</span>)</div>
+          <div id="watchList"></div>
         </div>
 
         <!-- SETTINGS VIEW -->
@@ -615,8 +652,18 @@ button{ font-family:inherit; }
           <div class="set-panel">
             <div class="set-panel-hdr">Data Sync</div>
             <div class="set-panel-sub">Source: <code>Dispatch SO.xls</code> &amp; <code>Dispach STO.xls</code>.<br>
-              Last synced: <span id="setLastSync">never</span>.</div>
+              Last synced: <span id="setLastSync">never</span>.
+              {% if user.role == 'admin' %}<br>Syncs automatically in the background — Sync Now below forces an immediate refresh.{% endif %}</div>
+            {% if user.role == 'admin' %}
+            <div class="set-group">
+              <span class="set-label">Auto-sync every (minutes, min 5)</span>
+              <div class="sync-interval-row">
+                <input type="number" min="5" id="syncIntervalInput" class="set-field-input">
+                <button type="button" class="sync-interval-btn" id="saveSyncIntervalBtn">Save</button>
+              </div>
+            </div>
             <button type="button" class="sync-refresh standalone" id="setSyncNowBtn">Sync Now</button>
+            {% endif %}
           </div>
 
           <div class="set-panel">
@@ -641,11 +688,24 @@ button{ font-family:inherit; }
       </div>
 
       <div class="tabbar" id="tabbar">
-        <button type="button" class="tab active" data-view="home"><span>&#127968;</span>Home</button>
+        {% if 'home' in user.tabs %}
+        <button type="button" class="tab" data-view="home"><span>&#127968;</span>Home</button>
+        {% endif %}
+        {% if 'search' in user.tabs %}
         <button type="button" class="tab" data-view="search"><span>&#128269;</span>Search</button>
+        {% endif %}
+        {% if 'alerts' in user.tabs %}
         <button type="button" class="tab" data-view="alerts"><span>&#128276;</span>Alerts</button>
+        {% endif %}
+        {% if 'settings' in user.tabs %}
         <button type="button" class="tab" data-view="settings"><span>&#9881;&#65039;</span>Settings</button>
+        {% endif %}
+        {% if user.role == 'admin' %}
+        <a class="tab" href="{{ url_for('admin_page') }}"><span>&#128451;&#65039;</span>CMS</a>
+        {% endif %}
       </div>
+    </div>
+    </div>
     </div>
 
     <!-- DATE PICKER MODAL (single date or start/end range) -->
@@ -742,7 +802,6 @@ button{ font-family:inherit; }
 'use strict';
 
 const CAN_MANAGE_PRODUCTION = document.body.dataset.canManageProduction === 'true';
-const IS_DEVELOPER = document.body.dataset.isDeveloper === 'true';
 
 const STATUS_PILL = {
   'Fresh':['grey'], 'Authorized':['amber'], 'Closed':['green'], 'Deleted':['red'],
@@ -1109,7 +1168,9 @@ const els = {
   toast: document.getElementById('toast'),
 };
 let typeFilter = 'ALL';
+const ALLOWED_TABS = (document.body.dataset.tabs || '').split(',').filter(Boolean);
 let defaultLanding = localStorage.getItem('so_sto_landing') || 'home';
+if (!ALLOWED_TABS.includes(defaultLanding)) defaultLanding = ALLOWED_TABS[0] || 'home';
 let searchDebounce = null;
 
 function showView(name){
@@ -1118,7 +1179,7 @@ function showView(name){
   els.viewAlerts.classList.toggle('active', name === 'alerts');
   els.viewSettings.classList.toggle('active', name === 'settings');
   els.viewDetail.classList.remove('active');
-  document.querySelectorAll('#tabbar .tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+  document.querySelectorAll('.tab[data-view], .side-tab[data-view]').forEach(t => t.classList.toggle('active', t.dataset.view === name));
   document.querySelector('.screen').scrollTop = 0;
 }
 document.getElementById('tabbar').addEventListener('click', e => {
@@ -1126,7 +1187,26 @@ document.getElementById('tabbar').addEventListener('click', e => {
   if (!tab) return;
   showView(tab.dataset.view);
 });
+document.getElementById('sidebarNav').addEventListener('click', e => {
+  const tab = e.target.closest('.side-tab');
+  if (!tab) return;
+  showView(tab.dataset.view);
+});
 els.q.addEventListener('focus', () => showView('search'));
+
+// ---- Sidebar collapse/expand (system/desktop only) ----
+const sidebarToggleBtn = document.getElementById('sidebarToggle');
+function applySidebarState(collapsed){
+  document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
+  sidebarToggleBtn.innerHTML = collapsed ? '&#10095;' : '&#10094;';
+  sidebarToggleBtn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+}
+sidebarToggleBtn.addEventListener('click', () => {
+  const collapsed = !document.documentElement.classList.contains('sidebar-collapsed');
+  localStorage.setItem('sss_sidebar_collapsed', collapsed ? '1' : '0');
+  applySidebarState(collapsed);
+});
+applySidebarState(document.documentElement.classList.contains('sidebar-collapsed'));
 
 async function renderList(){
   const term = els.q.value.trim();
@@ -1318,12 +1398,39 @@ async function doSync(btns){
     btns.forEach(b => { b.disabled = false; b.textContent = 'Sync Now'; });
   }
 }
-document.getElementById('syncNowBtn').addEventListener('click', () => {
-  doSync([document.getElementById('syncNowBtn'), document.getElementById('setSyncNowBtn')]);
-});
-document.getElementById('setSyncNowBtn').addEventListener('click', () => {
-  doSync([document.getElementById('syncNowBtn'), document.getElementById('setSyncNowBtn')]);
-});
+// Sync Now is admin-only (so_sto.html gates both buttons on user.role) —
+// everyone else just searches whatever the admin has already uploaded/synced.
+const syncNowBtn = document.getElementById('syncNowBtn');
+const setSyncNowBtn = document.getElementById('setSyncNowBtn');
+if (syncNowBtn || setSyncNowBtn) {
+  const syncBtns = [syncNowBtn, setSyncNowBtn].filter(Boolean);
+  syncBtns.forEach(btn => btn.addEventListener('click', () => doSync(syncBtns)));
+}
+
+// ---- Auto-sync interval (admin only — element won't exist otherwise) ----
+const syncIntervalInput = document.getElementById('syncIntervalInput');
+const saveSyncIntervalBtn = document.getElementById('saveSyncIntervalBtn');
+if (syncIntervalInput && saveSyncIntervalBtn) {
+  api('/api/so-sto/sync-interval').then(info => {
+    syncIntervalInput.value = info.minutes;
+    syncIntervalInput.min = info.min_minutes;
+  }).catch(() => {});
+  saveSyncIntervalBtn.addEventListener('click', async () => {
+    const minutes = parseInt(syncIntervalInput.value, 10);
+    saveSyncIntervalBtn.disabled = true;
+    try {
+      const info = await api('/api/so-sto/sync-interval', {
+        method: 'POST', body: JSON.stringify({ minutes }),
+      });
+      syncIntervalInput.value = info.minutes;
+      toast(`Auto-sync set to every ${info.minutes} minutes`);
+    } catch (e) {
+      toast(`Couldn't save: ${e.message}`);
+    } finally {
+      saveSyncIntervalBtn.disabled = false;
+    }
+  });
+}
 
 // ---- Settings ----
 function wireSegRow(rowId, onPick){
@@ -1439,11 +1546,7 @@ renderDateTrigger();
 loadLastSync();
 renderDaySummary();
 renderList();
-if (IS_DEVELOPER){
-  document.getElementById('alertsComingSoon').classList.add('hidden-block');
-  document.getElementById('alertsReal').classList.remove('hidden-block');
-  renderWatchlist();
-}
+renderWatchlist();
 </script>
 </body>
 </html>
