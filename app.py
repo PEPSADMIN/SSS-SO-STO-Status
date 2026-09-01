@@ -6,8 +6,8 @@ independent of the Sales_Mobile hub (own login, own accounts, own process),
 so it doesn't touch Sales Dashboard/Orders/Retailer Map/Announcements or
 whoever currently relies on those.
 
-Data source: D:\\Hari JR. DATA\\Development\\SO\\Input\\Dispatch SO.xls /
-Dispach STO.xls, plus the Item Master CSV for the item watchlist — see
+Data source: ../Input/Dispatch SO.xls / Dispach STO.xls (relative to the
+project root), plus the Item Master CSV for the item watchlist — see
 so_sto_ingest.py. Kept fresh by a background thread (_background_sync_loop,
 admin-configurable interval, default 20 min) so nobody needs to click Sync
 Now; that button still exists for admins who want to force an immediate
@@ -21,7 +21,7 @@ import os
 import secrets
 from pathlib import Path
 
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for, send_from_directory
 from flask_cors import CORS
 
 import sss_auth_db as auth_db
@@ -30,6 +30,7 @@ import so_sto_ingest
 from sss_auth import login_required, admin_required, login_user, logout_user, current_user
 
 APP_DIR = Path(__file__).resolve().parent
+PWA_DIR = APP_DIR / "pwa"
 
 app = Flask(__name__)
 
@@ -49,6 +50,20 @@ else:
         app.secret_key = key
 
 CORS(app, supports_credentials=True)
+
+
+# ── PWA (installable on iOS Safari & Android Chrome) ──
+@app.route("/manifest.webmanifest")
+def manifest():
+    return send_from_directory(PWA_DIR, "manifest.webmanifest", mimetype="application/manifest+json")
+
+
+@app.route("/sw.js")
+def service_worker():
+    res = send_from_directory(PWA_DIR, "sw.js", mimetype="application/javascript")
+    # Allow the SW to control the whole origin even though the file lives at /sw.js.
+    res.headers["Service-Worker-Allowed"] = "/"
+    return res
 
 auth_db.init_db()
 so_sto_db.init_db()
@@ -240,6 +255,83 @@ def so_sto_last_sync():
     return jsonify(so_sto_db.last_sync() or {})
 
 
+def _csv_response(rows: list[dict], fieldnames: list[str], filename: str):
+    import csv, io
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+    w.writeheader()
+    for r in rows:
+        w.writerow(r)
+    out = buf.getvalue().encode("utf-8-sig")  # BOM so Excel reads UTF-8 cleanly
+    return app.response_class(
+        out,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.route("/api/so-sto/export/watchlist")
+@login_required
+def so_sto_export_watchlist():
+    """CSV of the signed-in user's watchlist and every live SO/STO match."""
+    user = current_user()
+    rows = []
+    for w in so_sto_db.list_watchlist(user["username"]):
+        matches = so_sto_db.matches_for_item_code(w["item_code"])
+        if not matches:
+            rows.append({
+                "item_code": w["item_code"], "item_desc": w["item_desc"], "category": w["item_cat"],
+                "qty": w["qty"], "priority": w["priority"], "status": w["status"],
+                "match_doc": "", "match_type": "", "order_status": "",
+                "packslip_status": "", "invoice_status": "", "invoice_no": "",
+            })
+        for m in matches:
+            rows.append({
+                "item_code": w["item_code"], "item_desc": w["item_desc"], "category": w["item_cat"],
+                "qty": w["qty"], "priority": w["priority"], "status": w["status"],
+                "match_doc": m["doc_no"], "match_type": m["doc_type"], "order_status": m["doc_status"],
+                "packslip_status": m["packslip_status"], "invoice_status": m["invoice_status"],
+                "invoice_no": m["invoice_no"],
+            })
+    return _csv_response(
+        rows,
+        ["item_code", "item_desc", "category", "qty", "priority", "status",
+         "match_doc", "match_type", "order_status", "packslip_status", "invoice_status", "invoice_no"],
+        "sss_watchlist.csv",
+    )
+
+
+@app.route("/api/so-sto/export/search")
+@login_required
+def so_sto_export_search():
+    """CSV of the current Search results (same query the UI uses)."""
+    term = request.args.get("q", "").strip()
+    doc_type = request.args.get("type", "ALL")
+    docs = so_sto_db.search_docs(term, doc_type)
+    rows = []
+    for d in docs:
+        summary = so_sto_db.doc_summary(d["items"])
+        for it in d["items"]:
+            rows.append({
+                "doc_no": d["doc_no"], "doc_type": d["doc_type"], "doc_date": d["doc_date"],
+                "party": d["party"], "place": d["place"], "person": d["person"],
+                "item_code": it["item_code"], "item_desc": it["item_desc"],
+                "ordered_qty": it["ordered_qty"],
+                "order_status": summary["orderStatus"],
+                "packslip_status": summary["packslip"]["status"],
+                "packslip_no": it["packslip_no"],
+                "invoice_status": summary["invoice"]["status"],
+                "invoice_no": it["invoice_no"],
+            })
+    return _csv_response(
+        rows,
+        ["doc_no", "doc_type", "doc_date", "party", "place", "person",
+         "item_code", "item_desc", "ordered_qty", "order_status",
+         "packslip_status", "packslip_no", "invoice_status", "invoice_no"],
+        "sss_search_export.csv",
+    )
+
+
 @app.route("/api/so-sto/summary")
 @login_required
 def so_sto_summary():
@@ -422,5 +514,22 @@ if __name__ == "__main__":
     import threading
     threading.Thread(target=_background_sync_loop, daemon=True).start()
 
+    import signal, sys
+
+    def _graceful_exit(signum, frame):
+        sys.exit(0)
+
+    # NSSM/service stop delivers SIGTERM (or Ctrl-C); exit cleanly so no
+    # orphaned python process is left holding the port between restarts.
+    try:
+        signal.signal(signal.SIGTERM, _graceful_exit)
+    except (ValueError, OSError, AttributeError):
+        pass
+
     from waitress import serve
-    serve(app, host="0.0.0.0", port=PORT)
+    try:
+        serve(app, host="0.0.0.0", port=PORT)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        sys.stdout.flush()

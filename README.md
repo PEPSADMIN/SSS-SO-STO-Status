@@ -1,4 +1,7 @@
-# SSS — SO / STO Status
+# SSS Tool — SO / STO Status
+
+> Project folder: `SSS Tool` (renamed from `SO`). The app itself is branded
+> **SSS** (SO / STO Status).
 
 A single-purpose internal tool: log in, check the live status of Sales Orders
 (SO) and Stock Transfer Orders (STO) — Order status, Packslip status, Invoice
@@ -14,10 +17,18 @@ accounts, own process).
 - **Alerts** — watch specific items by code; see live matches against
   in-flight SO/STO lines. Production Managers can mark a watched item as
   Produced.
-- **Settings** — theme, default landing tab, and (admin only) the data-sync
-  controls below.
+- **Settings** — theme, default landing tab, **Export** (CSV of your watchlist
+  or current Search results), and (admin only) the data-sync controls below.
 - **CMS** (admin only) — manage user accounts, per-user tab visibility,
   Production Manager grants, and upload the source data files.
+
+### Installable on phone (PWA)
+The app is a Progressive Web App, so it opens like a native app on **both
+iPhone (Safari → Add to Home Screen) and Android (Chrome → Install/Add to
+Home Screen)** — no App Store needed. It also works offline: the last-seen
+data is cached by the service worker, so Search/Alerts/History stay readable
+with no signal. The layout is unchanged — same sidebar on desktop, same bottom
+tab bar on phones.
 
 Layout is responsive: a left sidebar nav (collapsible) on desktop/tablet, a
 bottom tab bar on phone-width screens — same page, same code, both work.
@@ -25,10 +36,11 @@ bottom tab bar on phone-width screens — same page, same code, both work.
 ## Data source
 
 Reads from two Excel exports (`Dispatch SO.xls`, `Dispach STO.xls`) plus an
-Item Master CSV for the watchlist search. Locally these are read from a
-fixed folder on disk; on a host without that folder (e.g. Railway), an admin
-uploads them instead via CMS → Data Files, which also triggers an immediate
-sync.
+Item Master CSV for the watchlist search. Locally these are read from the
+`Input/` and `Item Master/` folders next to `App/` (relative paths, so the
+project can live anywhere or be renamed); on a host without those folders
+(e.g. Railway), an admin uploads them instead via CMS → Data Files, which also
+triggers an immediate sync.
 
 **Data refreshes itself** — a background thread re-syncs on a timer
 (default every 20 minutes, admin-configurable down to a 5-minute minimum via
@@ -93,12 +105,19 @@ reading the Excel exports + waitress as the production WSGI server.
 
 ```
 app.py              Flask routes — auth, pages, all /api/so-sto/* and /api/admin/* endpoints
+                    + PWA routes (/manifest.webmanifest, /sw.js) and CSV export endpoints
 sss_auth.py          Session login/logout, @login_required / @admin_required decorators
 sss_auth_db.py        User accounts DB (username, password hash, role, per-user tabs)
 so_sto_db.py          Tracker data DB (snapshot, history, item master, watchlist, settings)
 so_sto_ingest.py       Reads the Excel/CSV source files, diffs against the previous snapshot
+pwa/
+  manifest.webmanifest  PWA manifest (name, icons, standalone display)
+  sw.js                 Service worker (app-shell + offline API caching)
+static/
+  icon-*.png, apple-touch-icon.png   Generated app icons
 templates/
   sss_login.html        Login page
   sss_admin.html         CMS (admin) page
   so_sto.html            The main app — all four tabs, one page, responsive
 ```
+

@@ -32,9 +32,10 @@ import pandas as pd
 
 import so_sto_db
 
-# Locally, the three source files already live in fixed folders on this PC —
-# unchanged, zero setup needed to keep running `python app.py` here. On
-# Railway (DATA_DIR set to a mounted persistent volume), there's no D: drive
+# Locally, the three source files already live in fixed folders next to the
+# app (../Input and ../Item Master, relative to this file) — so the project
+# can live anywhere on disk (or be renamed) without editing paths. On Railway
+# (DATA_DIR set to a mounted persistent volume), there's no local Input folder
 # to read from, so uploaded files land under DATA_DIR/uploads instead — see
 # save_uploaded_file() / the /api/so-sto/upload route in app.py.
 _DATA_DIR_ENV = os.environ.get("DATA_DIR")
@@ -42,8 +43,10 @@ if _DATA_DIR_ENV:
     INPUT_DIR = Path(_DATA_DIR_ENV) / "uploads"
     ITEM_MASTER_FILE = str(Path(_DATA_DIR_ENV) / "uploads" / "Item Master.csv")
 else:
-    INPUT_DIR = Path(r"D:\Hari JR. DATA\Development\SO\Input")
-    ITEM_MASTER_FILE = r"D:\Hari JR. DATA\Development\SO\Item Master\Item Master.csv"
+    # App/so_sto_ingest.py -> parent is App/, parent of that is the project root.
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+    INPUT_DIR = PROJECT_ROOT / "Input"
+    ITEM_MASTER_FILE = str(PROJECT_ROOT / "Item Master" / "Item Master.csv")
 SO_FILE = str(INPUT_DIR / "Dispatch SO.xls")
 STO_FILE = str(INPUT_DIR / "Dispach STO.xls")
 

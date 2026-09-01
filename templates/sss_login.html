@@ -3,32 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SSS — Sign In</title>
+<title>SSS Tool — Sign In</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+<meta name="theme-color" content="#b85c38">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SSS Tool">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <style>
     * { box-sizing: border-box; }
     body {
         margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-        font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-        background: linear-gradient(135deg, #0f1c2e, #16344a);
-        color: #fff; padding: 24px;
+        font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        background: linear-gradient(160deg, #f5f0eb, #ede5db);
+        color: #2c1810; padding: 24px;
+        position: relative; overflow: hidden;
     }
-    .card { width: 100%; max-width: 360px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 16px; padding: 32px 28px; }
-    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
-    .brand-mark { width: 38px; height: 38px; border-radius: 11px; background: #2d7dd2; color: #fff;
-        display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; flex-shrink: 0; }
-    h1 { font-size: 1.2rem; margin: 0; }
-    p.sub { opacity: .7; margin: 0 0 24px; font-size: .85rem; }
-    label { display: block; font-size: .8rem; opacity: .8; margin-bottom: 4px; }
-    input { width: 100%; padding: 10px 12px; margin-bottom: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-        background: rgba(255,255,255,0.08); color: #fff; font-size: .95rem; }
-    input:focus { outline: 2px solid #4d8fdb; }
-    button { width: 100%; padding: 11px; border: none; border-radius: 8px; background: #2d7dd2; color: #fff;
-        font-size: .95rem; font-weight: 600; cursor: pointer; }
-    button:hover { background: #3a8de0; }
-    .error { background: rgba(220,53,69,.2); border: 1px solid rgba(220,53,69,.5); color: #ffd9dc;
-        padding: 8px 12px; border-radius: 8px; font-size: .82rem; margin-bottom: 16px; }
+    body::before {
+        content: ''; position: absolute; top: -30%; right: -20%; width: 60vw; height: 60vw;
+        background: radial-gradient(circle, rgba(184,92,56,.08) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    body::after {
+        content: ''; position: absolute; bottom: -20%; left: -15%; width: 50vw; height: 50vw;
+        background: radial-gradient(circle, rgba(90,124,101,.06) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .card {
+        width: 100%; max-width: 380px;
+        background: rgba(255,255,255,0.65);
+        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(180,155,130,.22);
+        border-radius: 18px; padding: 36px 32px;
+        box-shadow: 0 2px 8px rgba(44,24,16,.06), 0 12px 40px rgba(44,24,16,.10);
+        position: relative; z-index: 1;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+    .brand-mark {
+        width: 40px; height: 40px; border-radius: 12px;
+        background: linear-gradient(135deg, #b85c38, #d4845e);
+        color: #fff; display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem; font-weight: 800; flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(184,92,56,.35);
+    }
+    h1 { font-size: 1.3rem; margin: 0; font-weight: 800; letter-spacing: -.02em; }
+    p.sub { margin: 0 0 26px; font-size: .82rem; color: #9a877a; font-weight: 600; letter-spacing: .04em; }
+    label { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+        text-transform: uppercase; color: #9a877a; margin-bottom: 5px; }
+    input {
+        width: 100%; padding: 11px 14px; margin-bottom: 18px; border-radius: 11px;
+        border: 1.5px solid rgba(180,155,130,.3);
+        background: rgba(255,255,255,0.55); color: #2c1810; font-size: .95rem;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    input::placeholder { color: #9a877a; }
+    input:focus {
+        outline: none; border-color: #b85c38;
+        box-shadow: 0 0 0 3px rgba(184,92,56,.15), 0 4px 12px rgba(184,92,56,.08);
+    }
+    button {
+        width: 100%; padding: 12px; border: none; border-radius: 11px;
+        background: linear-gradient(135deg, #b85c38, #d4845e); color: #fff;
+        font-size: .95rem; font-weight: 700; cursor: pointer;
+        box-shadow: 0 2px 8px rgba(184,92,56,.3);
+        transition: transform .15s, box-shadow .15s;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(184,92,56,.4); }
+    button:active { transform: scale(.98); }
+    .error {
+        background: rgba(196,69,54,.12); border: 1.5px solid rgba(196,69,54,.35);
+        color: #c44536; padding: 10px 14px; border-radius: 11px;
+        font-size: .82rem; margin-bottom: 18px; font-weight: 600;
+    }
 </style>
 </head>
 <body>
@@ -49,5 +97,12 @@
         <button type="submit">Sign In</button>
     </form>
 </div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
+</script>
 </body>
 </html>
