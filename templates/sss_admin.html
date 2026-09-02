@@ -5,31 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SSS — Admin</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+<script>
+(function () {
+    if (localStorage.getItem('sss_sidebar_collapsed') === '1') {
+        document.documentElement.classList.add('sidebar-collapsed');
+    }
+})();
+</script>
 <style>
     :root {
-        --bg: #ffffff; --text: #0a0e14; --text-mut: #5b6b7c;
-        --border: #e3e7ec; --panel-bg: #f7f8fa; --input-bg: #ffffff; --input-border: #d4dae1;
-        --badge-bg: #eceff3; --badge-text: #33404d; --role-admin-bg: #fdedc8; --role-admin-text: #8a6a1a;
+        --navy: #1F3864; --navy2: #2E75B6; --navy2-hover: #1F5C9A; --amber: #BF8F00;
+        --bg: #ffffff; --text: #1a1a2e; --text-mut: #8892a4;
+        --border: #d0d4dd; --panel-bg: #f7f9fc; --input-bg: #ffffff; --input-border: #d0d4dd;
+        --badge-bg: #eceff3; --badge-text: #33404d; --role-admin-bg: var(--amber); --role-admin-text: #fff;
         --row-btn-bg: #ffffff; --row-btn-hover: #eceff3;
-        --danger-hover-bg: #fde3e3; --danger-hover-border: #f2b8b8; --danger-hover-text: #b3261e;
-        --link: #1c5dab;
+        --danger-hover-bg: #FFEBEE; --danger-hover-border: #f2b8b8; --danger-hover-text: #B71C1C;
+        --link: var(--navy2);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: Calibri, "Segoe UI", Arial, sans-serif; background: #f0f2f5; color: var(--text);
+        display: flex; flex-direction: column; overflow: hidden; }
     .topbar {
-        display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px;
-        border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 5;
+        display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 52px;
+        flex-shrink: 0; width: 100%; background: var(--navy); color: #fff; z-index: 5;
     }
-    .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; }
-    .brand-mark { width: 26px; height: 26px; border-radius: 8px; background: #2d7dd2; color: #fff;
+    .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; color: #fff; }
+    .brand-mark { width: 26px; height: 26px; border-radius: 8px; background: var(--navy2); color: #fff;
         display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 800; }
-    .topbar-right { display: flex; align-items: center; gap: 14px; font-size: .85em; color: var(--text-mut); }
-    .topbar-right a { color: var(--link); text-decoration: none; }
-    .topbar-right a:hover { text-decoration: underline; }
-    .content { max-width: 780px; margin: 0 auto; padding: 26px 20px 60px; }
+    .topbar-right { display: flex; align-items: center; gap: 14px; font-size: .85em; color: rgba(255,255,255,.7); }
+    .topbar-right a { color: rgba(255,255,255,.85); text-decoration: none; }
+    .topbar-right a:hover { color: #fff; text-decoration: underline; }
+
+    .app-body { display: flex; flex: 1; min-height: 0; }
+    .sidebar-nav {
+        display: flex; flex-direction: column; align-items: stretch; width: 210px; flex-shrink: 0;
+        background: #fff; border-right: 1px solid var(--border); overflow-y: auto; overflow-x: hidden;
+        transition: width .18s ease;
+    }
+    html.sidebar-collapsed .sidebar-nav { width: 52px; }
+    .sidebar-toggle {
+        display: flex; align-items: center; justify-content: center; height: 34px; flex-shrink: 0;
+        border: none; background: none; color: var(--text-mut); cursor: pointer; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-toggle:hover { background: var(--panel-bg); color: var(--navy2); }
+    .sidebar-section {
+        font-size: .62rem; font-weight: 700; color: var(--text-mut); padding: 12px 14px 4px;
+        text-transform: uppercase; letter-spacing: .08em; white-space: nowrap;
+    }
+    html.sidebar-collapsed .sidebar-section { display: none; }
+    .side-tab {
+        display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+        border: none; border-left: 3px solid transparent; border-radius: 0;
+        background: none; color: var(--text-mut); font-size: .78rem; font-weight: 600; cursor: pointer;
+        white-space: nowrap; overflow: hidden; text-align: left; text-decoration: none;
+    }
+    .side-tab .side-icon { display: flex; flex-shrink: 0; width: 18px; }
+    .side-tab .side-icon svg { width: 16px; height: 16px; }
+    .side-tab.active { background: #DCE6F5; color: var(--navy2); border-left-color: var(--navy2); font-weight: 700; }
+    .side-tab:hover:not(.active) { background: var(--panel-bg); color: var(--navy2); }
+    html.sidebar-collapsed .side-tab { justify-content: center; padding: 10px 0; }
+    html.sidebar-collapsed .side-label { display: none; }
+
+    .content { flex: 1; min-height: 0; overflow-y: auto; max-width: 780px; margin: 0 auto; padding: 26px 20px 60px; width: 100%; }
     h1 { font-size: 1.3em; margin: 0 0 4px; }
     .page-sub { color: var(--text-mut); font-size: .85em; margin: 0 0 20px; }
-    .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+    .panel { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(16,24,38,.04); }
     .panel h2, .overlay-card h2 { font-size: 1em; margin: 0 0 4px; }
     .inline-form-field.field-full { flex-basis: 100%; }
     .overlay-card .field-spaced { margin-top: 12px; }
@@ -52,8 +93,8 @@
         width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--input-border);
         background: var(--input-bg); color: var(--text); font-size: .85em; font-family: inherit;
     }
-    button.primary { background: #3a8bdc; border: none; color: #fff; border-radius: 8px; padding: 9px 18px; font-size: .85em; cursor: pointer; }
-    button.primary:hover { background: #2f78c4; }
+    button.primary { background: var(--navy2); border: none; color: #fff; border-radius: 6px; padding: 9px 18px; font-size: .85em; font-weight: 700; cursor: pointer; }
+    button.primary:hover { background: var(--navy2-hover); }
     .msg { font-size: .8em; margin-left: 4px; }
     .msg.err { color: #c5302f; }
     .msg.ok { color: #1f8a4c; }
@@ -70,6 +111,7 @@
     .overlay-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
     .btn-plain { background: var(--row-btn-bg); border: 1px solid var(--input-border); color: var(--text);
         border-radius: 7px; padding: 7px 14px; font-size: .85em; cursor: pointer; }
+    @media (max-width: 767px){ .sidebar-nav{ display: none; } }
 </style>
 </head>
 <body>
@@ -82,6 +124,25 @@
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 </div>
+
+<div class="app-body">
+  <nav class="sidebar-nav" id="sidebarNav">
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Collapse sidebar">&#10094;</button>
+    <div class="sidebar-section">Views</div>
+    {% if 'home' in user.tabs %}
+    <a class="side-tab" href="{{ url_for('so_sto_page') }}"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="side-label">Home</span></a>
+    {% endif %}
+    {% if 'search' in user.tabs %}
+    <a class="side-tab" href="{{ url_for('so_sto_page') }}"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><span class="side-label">Search</span></a>
+    {% endif %}
+    {% if 'alerts' in user.tabs %}
+    <a class="side-tab" href="{{ url_for('so_sto_page') }}"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span class="side-label">Alerts</span></a>
+    {% endif %}
+    {% if 'settings' in user.tabs %}
+    <a class="side-tab" href="{{ url_for('so_sto_page') }}"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="side-label">Settings</span></a>
+    {% endif %}
+    <a class="side-tab active" href="{{ url_for('admin_page') }}"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span><span class="side-label">CMS</span></a>
+  </nav>
 
 <div class="content">
     <h1>Admin</h1>
@@ -180,6 +241,7 @@
         </table>
     </div>
 
+</div>
 </div>
 
 <script>
@@ -341,6 +403,21 @@ document.getElementById('pmAddForm').addEventListener('submit', function (e) {
     });
 });
 loadProductionManagers();
+
+// Sidebar collapse/expand — same localStorage key as the main app, so state
+// stays in sync when navigating between here and the SO/STO views.
+var sidebarToggleBtn = document.getElementById('sidebarToggle');
+function applySidebarState(collapsed) {
+    document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
+    sidebarToggleBtn.innerHTML = collapsed ? '&#10095;' : '&#10094;';
+    sidebarToggleBtn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+}
+sidebarToggleBtn.addEventListener('click', function () {
+    var collapsed = !document.documentElement.classList.contains('sidebar-collapsed');
+    localStorage.setItem('sss_sidebar_collapsed', collapsed ? '1' : '0');
+    applySidebarState(collapsed);
+});
+applySidebarState(document.documentElement.classList.contains('sidebar-collapsed'));
 </script>
 </body>
 </html>

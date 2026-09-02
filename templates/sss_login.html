@@ -6,48 +6,51 @@
 <title>SSS — Sign In</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
 <style>
-    * { box-sizing: border-box; }
-    body {
-        margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-        font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-        background: linear-gradient(135deg, #0f1c2e, #16344a);
-        color: #fff; padding: 24px;
-    }
-    .card { width: 100%; max-width: 360px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 16px; padding: 32px 28px; }
-    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
-    .brand-mark { width: 38px; height: 38px; border-radius: 11px; background: #2d7dd2; color: #fff;
-        display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; flex-shrink: 0; }
-    h1 { font-size: 1.2rem; margin: 0; }
-    p.sub { opacity: .7; margin: 0 0 24px; font-size: .85rem; }
-    label { display: block; font-size: .8rem; opacity: .8; margin-bottom: 4px; }
-    input { width: 100%; padding: 10px 12px; margin-bottom: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-        background: rgba(255,255,255,0.08); color: #fff; font-size: .95rem; }
-    input:focus { outline: 2px solid #4d8fdb; }
-    button { width: 100%; padding: 11px; border: none; border-radius: 8px; background: #2d7dd2; color: #fff;
-        font-size: .95rem; font-weight: 600; cursor: pointer; }
-    button:hover { background: #3a8de0; }
-    .error { background: rgba(220,53,69,.2); border: 1px solid rgba(220,53,69,.5); color: #ffd9dc;
-        padding: 8px 12px; border-radius: 8px; font-size: .82rem; margin-bottom: 16px; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1F3864;--blue2:#2E75B6;--border:#d0d4dd;--bg:#f0f2f5;--red:#C00000;--red-bg:#FDECEC}
+html,body{height:100%}
+body{font-family:Calibri,Arial,sans-serif;font-size:14px;color:#1a1a2e;background:var(--bg);
+     display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.card{background:#fff;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.12);width:100%;max-width:380px;overflow:hidden}
+.card-header{background:var(--blue);padding:26px 30px 22px;text-align:center}
+.card-header h1{font-size:17px;font-weight:700;color:#fff;margin-bottom:4px}
+.card-header p{font-size:12px;color:rgba(255,255,255,.6)}
+.card-body{padding:26px 30px 30px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:700;color:#8892a4;letter-spacing:.05em;
+             text-transform:uppercase;margin-bottom:6px}
+.field input{width:100%;border:1px solid var(--border);border-radius:5px;padding:9px 11px;
+             font:inherit;font-size:13.5px;color:#1a1a2e;background:#fff;transition:border-color .15s}
+.field input:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px rgba(46,117,182,.15)}
+.btn-login{width:100%;padding:10px;border:none;border-radius:5px;background:var(--blue2);color:#fff;
+           font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:background .15s;margin-top:6px}
+.btn-login:hover{background:#1F5C9A}
+.error-box{background:var(--red-bg);border:1px solid #f3a6a6;border-radius:5px;padding:9px 12px;
+           font-size:12px;color:var(--red);margin-bottom:16px}
 </style>
 </head>
 <body>
-<div class="card">
-    <div class="brand">
-        <div class="brand-mark">S</div>
-        <div>
-            <h1>SSS</h1>
-            <p class="sub" style="margin:0;">SO / STO Status</p>
-        </div>
+  <div class="card">
+    <div class="card-header">
+      <h1>SSS</h1>
+      <p>SO / STO Status</p>
     </div>
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
-    <form method="post">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" autocomplete="username" required autofocus>
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" autocomplete="current-password" required>
-        <button type="submit">Sign In</button>
-    </form>
-</div>
+    <div class="card-body">
+      {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+      <form method="post">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" placeholder="Enter your username"
+                 autocomplete="username" required autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter your password"
+                 autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-login">Sign In</button>
+      </form>
+    </div>
+  </div>
 </body>
 </html>

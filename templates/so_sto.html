@@ -22,30 +22,35 @@
    the rest of the app (settings.html) so pp_theme is a shared preference.
 */
 :root{
-  --page:#eef1f5; --page2:#e4e9f0;
-  --surface:#ffffff; --surface2:#f6f8fa;
-  --border:#dde3ea;
-  --ink:#101826; --ink-mut:#5b6b7c; --ink-dim:#8b98a8;
-  --accent:#2d72d9; --accent-dim:rgba(45,114,217,.10);
-  --st-green:#1a7f37; --st-green-bg:rgba(26,127,55,.11);
-  --st-amber:#9a6700; --st-amber-bg:rgba(154,103,0,.12); --st-amber-border:rgba(154,103,0,.35);
-  --st-teal:#0d7d7a; --st-teal-bg:rgba(13,125,122,.12);
-  --st-red:#c5302f; --st-red-bg:rgba(197,48,47,.11);
+  /* Brand colors — fixed across light/dark, same as the Product Contribution
+     Tool's navy/blue corporate palette. */
+  --navy:#1F3864; --navy2:#2E75B6; --navy2-hover:#1F5C9A;
+  --brand-green:#1E5631; --brand-red:#C00000; --brand-amber:#BF8F00;
+
+  --page:#f0f2f5; --page2:#e4e9f0;
+  --surface:#ffffff; --surface2:#f7f9fc; --surface3:#eef1f7;
+  --border:#d0d4dd;
+  --ink:#1a1a2e; --ink-mut:#8892a4; --ink-dim:#667;
+  --accent:#2E75B6; --accent-dim:#DCE6F5;
+  --st-green:#1B5E20; --st-green-bg:#E8F5E9;
+  --st-amber:#F57F17; --st-amber-bg:#FFF8E1; --st-amber-border:rgba(191,143,0,.35);
+  --st-teal:#E65100; --st-teal-bg:#FFF3E0; /* named teal, rendered as the ref palette's orange tint (no teal in that palette) */
+  --st-red:#B71C1C; --st-red-bg:#FFEBEE;
   --st-grey:#5b6b7c; --st-grey-bg:rgba(91,107,124,.10);
   --shadow: 0 1px 2px rgba(16,24,38,.04), 0 12px 32px rgba(16,24,38,.08);
-  --font-ui: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "DM Mono", monospace;
+  --font-ui: Calibri, "Segoe UI", Arial, sans-serif;
+  --font-mono: Consolas, ui-monospace, "SFMono-Regular", monospace;
 }
 :root.theme-dark{
-  --page:#0b121d; --page2:#0f1c2e;
-  --surface:#141f30; --surface2:#101a29;
-  --border:rgba(255,255,255,.09);
-  --ink:#f2f5f9; --ink-mut:#9db0c4; --ink-dim:#69798d;
-  --accent:#5b9af5; --accent-dim:rgba(91,154,245,.14);
-  --st-green:#3fb950; --st-green-bg:rgba(63,185,80,.14);
-  --st-amber:#d29922; --st-amber-bg:rgba(210,153,34,.14); --st-amber-border:rgba(210,153,34,.35);
-  --st-teal:#2dd4cf; --st-teal-bg:rgba(45,212,207,.14);
-  --st-red:#f85149; --st-red-bg:rgba(248,81,73,.14);
+  --page:#14161c; --page2:#0f1116;
+  --surface:#1c1f27; --surface2:#252932; --surface3:#2b3038;
+  --border:#3a4049;
+  --ink:#e6e8ec; --ink-mut:#9aa3b5; --ink-dim:#8891a0;
+  --accent:#7db2e8; --accent-dim:#233a56;
+  --st-green:#6fcf87; --st-green-bg:#1c3a24;
+  --st-amber:#f0c05a; --st-amber-bg:#3d3315; --st-amber-border:rgba(240,192,90,.35);
+  --st-teal:#f0a25a; --st-teal-bg:#3d2b15;
+  --st-red:#f3897f; --st-red-bg:#3d1f22;
   --st-grey:#9db0c4; --st-grey-bg:rgba(157,176,196,.12);
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 20px 44px rgba(0,0,0,.45);
 }
@@ -68,12 +73,36 @@ button{ font-family:inherit; }
    viewport at any width, no gutters. No fake notch/status-bar — those were
    only useful while reviewing this as a design mockup. */
 .phone-wrap{ display:flex; flex-direction:column; align-items:center; width:100%; height:100vh; }
+
+/* ---------- Topbar (system/desktop only) — full-width navy bar above the
+   sidebar+content row, same treatment as the Product Contribution Tool. ---------- */
+.topbar{
+  display:none; align-items:center; justify-content:space-between; flex-shrink:0;
+  width:100%; background:var(--navy); color:#fff; padding:9px 16px; gap:12px;
+}
+.topbar-title{ font-size:.86rem; font-weight:700; letter-spacing:.01em; white-space:nowrap; }
+.topbar-right{ display:flex; align-items:center; gap:10px; }
+.btn{ padding:6px 13px; border-radius:6px; font-size:.72rem; font-weight:700; cursor:pointer; font-family:inherit; }
+.btn-outline{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,.5); }
+.btn-outline:hover{ background:rgba(255,255,255,.1); }
+.btn-outline:disabled{ opacity:.5; cursor:default; }
+.topbar-user{ display:flex; align-items:center; gap:9px; padding-left:11px; border-left:1px solid rgba(255,255,255,.25); }
+.topbar-username{ font-size:.72rem; font-weight:700; color:#fff; }
+.topbar-role-badge{
+  font-size:.55rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+  background:var(--brand-amber); color:#fff; padding:2px 6px; border-radius:4px;
+}
+.topbar-logout{
+  display:flex; align-items:center; color:rgba(255,255,255,.65); text-decoration:none; transition:color .15s;
+}
+.topbar-logout:hover{ color:#fff; }
+
 .app-frame{
-  width:100%; height:100vh; display:flex;
+  width:100%; flex:1; min-height:0; display:flex;
   background:var(--surface); overflow:hidden;
 }
 .phone{
-  flex:1; min-width:0; height:100vh;
+  flex:1; min-width:0; height:100%;
   background:var(--surface);
   overflow:hidden; position:relative; display:flex; flex-direction:column;
 }
@@ -83,23 +112,33 @@ button{ font-family:inherit; }
 /* ---------- Sidebar nav (system/desktop only) ---------- */
 .sidebar-nav{
   display:none; flex-direction:column; align-items:stretch; width:210px; flex-shrink:0;
-  background:var(--surface2); border-right:1px solid var(--border);
-  padding:14px 10px; gap:3px; transition:width .15s ease;
+  background:var(--surface); border-right:1px solid var(--border);
+  overflow-y:auto; overflow-x:hidden; transition:width .18s ease;
 }
-html.sidebar-collapsed .sidebar-nav{ width:60px; }
+html.sidebar-collapsed .sidebar-nav{ width:52px; }
 .sidebar-toggle{
-  align-self:flex-start; border:none; background:none; color:var(--ink-dim); cursor:pointer;
-  padding:6px; margin-bottom:12px; font-size:.85rem; border-radius:6px;
+  display:flex; align-items:center; justify-content:center; height:34px; flex-shrink:0;
+  border:none; background:none; color:var(--ink-mut); cursor:pointer; border-bottom:1px solid var(--border);
 }
-.sidebar-toggle:hover{ background:var(--surface); color:var(--ink); }
+.sidebar-toggle svg{ width:14px; height:14px; transition:transform .18s ease; }
+html.sidebar-collapsed .sidebar-toggle svg{ transform:rotate(180deg); }
+.sidebar-toggle:hover{ background:var(--surface2); color:var(--accent); }
+.sidebar-section{
+  font-size:.62rem; font-weight:700; color:var(--ink-mut); padding:12px 14px 4px;
+  text-transform:uppercase; letter-spacing:.08em; white-space:nowrap;
+}
+html.sidebar-collapsed .sidebar-section{ display:none; }
 .side-tab{
-  display:flex; align-items:center; gap:11px; padding:10px 11px; border-radius:10px;
-  border:none; background:none; color:var(--ink-mut); font-size:.82rem; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; gap:10px; padding:9px 14px;
+  border:none; border-left:3px solid transparent; border-radius:0;
+  background:none; color:var(--ink-dim); font-size:.78rem; font-weight:600; cursor:pointer;
   white-space:nowrap; overflow:hidden; text-align:left; text-decoration:none;
 }
-.side-tab .side-icon{ font-size:1.05rem; flex-shrink:0; width:18px; text-align:center; }
-.side-tab.active{ background:var(--accent-dim); color:var(--accent); }
-.side-tab:hover:not(.active){ background:var(--surface); }
+.side-tab .side-icon{ display:flex; flex-shrink:0; width:18px; }
+.side-tab .side-icon svg{ width:16px; height:16px; }
+.side-tab.active{ background:var(--accent-dim); color:var(--accent); border-left-color:var(--accent); font-weight:700; }
+.side-tab:hover:not(.active){ background:var(--surface2); color:var(--accent); }
+html.sidebar-collapsed .side-tab{ justify-content:center; padding:10px 0; }
 html.sidebar-collapsed .side-label{ display:none; }
 
 /* App chrome */
@@ -493,6 +532,7 @@ html.sidebar-collapsed .side-label{ display:none; }
   text-decoration:none;
 }
 .tab.active{ color:var(--accent); }
+.tab svg{ width:19px; height:19px; }
 
 @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
 
@@ -501,30 +541,49 @@ html.sidebar-collapsed .side-label{ display:none; }
 @media (min-width: 768px){
   .tabbar{ display:none; }
   .sidebar-nav{ display:flex; }
+  .topbar{ display:flex; }
+  .appbar-top{ display:none; }
 }
 </style>
 </head>
 <body data-can-manage-production="{{ 'true' if can_manage_production else 'false' }}" data-tabs="{{ user.tabs|join(',') }}">
 
 <div class="phone-wrap">
+  <!-- TOPBAR (system/desktop, 768px+) -->
+  <div class="topbar">
+    <div class="topbar-title">SSS &nbsp;&mdash;&nbsp; SO / STO Status</div>
+    <div class="topbar-right">
+      {% if user.role == 'admin' %}
+      <button type="button" class="btn btn-outline" id="topbarSyncBtn">Sync Now</button>
+      {% endif %}
+      <div class="topbar-user">
+        <span class="topbar-username">{{ user.username }}</span>
+        {% if user.role == 'admin' %}<span class="topbar-role-badge">Admin</span>{% endif %}
+        <a href="{{ url_for('logout') }}" class="topbar-logout" title="Sign out">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
   <div class="app-frame">
   <!-- SIDEBAR NAV (system/desktop, 768px+) -->
   <nav class="sidebar-nav" id="sidebarNav">
     <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Collapse sidebar">&#10094;</button>
+    <div class="sidebar-section">Views</div>
     {% if 'home' in user.tabs %}
-    <button type="button" class="side-tab" data-view="home"><span class="side-icon">&#127968;</span><span class="side-label">Home</span></button>
+    <button type="button" class="side-tab" data-view="home"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="side-label">Home</span></button>
     {% endif %}
     {% if 'search' in user.tabs %}
-    <button type="button" class="side-tab" data-view="search"><span class="side-icon">&#128269;</span><span class="side-label">Search</span></button>
+    <button type="button" class="side-tab" data-view="search"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><span class="side-label">Search</span></button>
     {% endif %}
     {% if 'alerts' in user.tabs %}
-    <button type="button" class="side-tab" data-view="alerts"><span class="side-icon">&#128276;</span><span class="side-label">Alerts</span></button>
+    <button type="button" class="side-tab" data-view="alerts"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span class="side-label">Alerts</span></button>
     {% endif %}
     {% if 'settings' in user.tabs %}
-    <button type="button" class="side-tab" data-view="settings"><span class="side-icon">&#9881;&#65039;</span><span class="side-label">Settings</span></button>
+    <button type="button" class="side-tab" data-view="settings"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="side-label">Settings</span></button>
     {% endif %}
     {% if user.role == 'admin' %}
-    <a class="side-tab" href="{{ url_for('admin_page') }}"><span class="side-icon">&#128451;&#65039;</span><span class="side-label">CMS</span></a>
+    <a class="side-tab" href="{{ url_for('admin_page') }}"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span><span class="side-label">CMS</span></a>
     {% endif %}
   </nav>
   <div class="phone">
@@ -689,19 +748,19 @@ html.sidebar-collapsed .side-label{ display:none; }
 
       <div class="tabbar" id="tabbar">
         {% if 'home' in user.tabs %}
-        <button type="button" class="tab" data-view="home"><span>&#127968;</span>Home</button>
+        <button type="button" class="tab" data-view="home"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>Home</button>
         {% endif %}
         {% if 'search' in user.tabs %}
-        <button type="button" class="tab" data-view="search"><span>&#128269;</span>Search</button>
+        <button type="button" class="tab" data-view="search"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>Search</button>
         {% endif %}
         {% if 'alerts' in user.tabs %}
-        <button type="button" class="tab" data-view="alerts"><span>&#128276;</span>Alerts</button>
+        <button type="button" class="tab" data-view="alerts"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>Alerts</button>
         {% endif %}
         {% if 'settings' in user.tabs %}
-        <button type="button" class="tab" data-view="settings"><span>&#9881;&#65039;</span>Settings</button>
+        <button type="button" class="tab" data-view="settings"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings</button>
         {% endif %}
         {% if user.role == 'admin' %}
-        <a class="tab" href="{{ url_for('admin_page') }}"><span>&#128451;&#65039;</span>CMS</a>
+        <a class="tab" href="{{ url_for('admin_page') }}"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>CMS</a>
         {% endif %}
       </div>
     </div>
@@ -815,10 +874,6 @@ function pill(label){
   return `<span class="pill ${cls}"><span class="pill-dot"></span>${esc(label)}</span>`;
 }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function fmtCurrency(v){
-  if (v == null) return '—';
-  return '₹ ' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 });
-}
 
 async function api(path, opts){
   const res = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts || {}));
@@ -1219,6 +1274,15 @@ async function renderList(){
     return;
   }
   const rows = data.records || [];
+
+  // Typing the exact SO/STO number jumps straight to its detail view instead
+  // of making the user click through a one-row results list.
+  const exact = term && rows.find(r => r.no.toLowerCase() === term.toLowerCase());
+  if (exact){
+    openDetail(exact.no);
+    return;
+  }
+
   els.count.textContent = term || typeFilter !== 'ALL'
     ? `${rows.length} match${rows.length === 1 ? '' : 'es'}`
     : `${rows.length} recent records`;
@@ -1309,7 +1373,6 @@ async function openDetail(no, origin){
       <div class="stage-fields">
         <div class="sf-row"><span class="sf-k">Invoice No.</span><span class="sf-v">${esc(r.invoice.no)}</span></div>
         <div class="sf-row"><span class="sf-k">Invoice Date</span><span class="sf-v">${esc(r.invoice.date)}</span></div>
-        <div class="sf-row"><span class="sf-k">Invoice Value</span><span class="sf-v">${fmtCurrency(r.invoice.value)}</span></div>
       </div>
     </div>
 
@@ -1402,8 +1465,9 @@ async function doSync(btns){
 // everyone else just searches whatever the admin has already uploaded/synced.
 const syncNowBtn = document.getElementById('syncNowBtn');
 const setSyncNowBtn = document.getElementById('setSyncNowBtn');
-if (syncNowBtn || setSyncNowBtn) {
-  const syncBtns = [syncNowBtn, setSyncNowBtn].filter(Boolean);
+const topbarSyncBtn = document.getElementById('topbarSyncBtn');
+if (syncNowBtn || setSyncNowBtn || topbarSyncBtn) {
+  const syncBtns = [syncNowBtn, setSyncNowBtn, topbarSyncBtn].filter(Boolean);
   syncBtns.forEach(btn => btn.addEventListener('click', () => doSync(syncBtns)));
 }
 
