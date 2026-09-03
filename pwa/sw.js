@@ -1,4 +1,4 @@
-/* SSS Tool service worker
+/* So Sto Status service worker
    - App-shell (HTML pages) cached network-first, with offline fallback.
    - Static assets (icons) cached cache-first.
    - API GET responses cached stale-while-revalidate so the last-seen data is

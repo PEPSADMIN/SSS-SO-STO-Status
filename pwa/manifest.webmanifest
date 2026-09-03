@@ -1,13 +1,13 @@
 {
-  "name": "SSS Tool — SO / STO Status",
-  "short_name": "SSS Tool",
+  "name": "So Sto Status",
+  "short_name": "So Sto",
   "description": "Check live SO/STO status (Order, Packslip, Invoice) and track items by watchlist.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#eef1f5",
-  "theme_color": "#2d72d9",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1F3864",
   "lang": "en-IN",
   "categories": ["business", "productivity"],
   "icons": [

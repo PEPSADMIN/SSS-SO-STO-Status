@@ -1,7 +1,9 @@
-# SSS Tool — SO / STO Status
+# So Sto Status
 
-> Project folder: `SSS Tool` (renamed from `SO`). The app itself is branded
-> **SSS** (SO / STO Status).
+> Project folder: `So Sto Status` (previously `SSS Tool`, before that `SO`).
+> The app itself is branded **So Sto Status**. Internal filenames/modules
+> (`sss_auth.py`, `sss_users.db`, etc.) still use the old `sss_` prefix —
+> only the display name and project folder changed.
 
 A single-purpose internal tool: log in, check the live status of Sales Orders
 (SO) and Stock Transfer Orders (STO) — Order status, Packslip status, Invoice
