@@ -1227,8 +1227,10 @@ const ALLOWED_TABS = (document.body.dataset.tabs || '').split(',').filter(Boolea
 let defaultLanding = localStorage.getItem('so_sto_landing') || 'home';
 if (!ALLOWED_TABS.includes(defaultLanding)) defaultLanding = ALLOWED_TABS[0] || 'home';
 let searchDebounce = null;
+let currentView = 'home';
 
 function showView(name){
+  currentView = name;
   els.viewHome.classList.toggle('active', name === 'home');
   els.viewSearch.classList.toggle('active', name === 'search');
   els.viewAlerts.classList.toggle('active', name === 'alerts');
@@ -1247,7 +1249,9 @@ document.getElementById('sidebarNav').addEventListener('click', e => {
   if (!tab) return;
   showView(tab.dataset.view);
 });
-els.q.addEventListener('focus', () => showView('search'));
+// No forced tab-switch on focus — typing a search works from whatever view
+// (e.g. Home) the user is already on; renderList() below decides whether to
+// jump straight to a detail or switch to the Search view to show a list.
 
 // ---- Sidebar collapse/expand (system/desktop only) ----
 const sidebarToggleBtn = document.getElementById('sidebarToggle');
@@ -1263,7 +1267,7 @@ sidebarToggleBtn.addEventListener('click', () => {
 });
 applySidebarState(document.documentElement.classList.contains('sidebar-collapsed'));
 
-async function renderList(){
+async function renderList(switchToSearchForList){
   const term = els.q.value.trim();
   let data;
   try {
@@ -1275,13 +1279,18 @@ async function renderList(){
   }
   const rows = data.records || [];
 
-  // Typing the exact SO/STO number jumps straight to its detail view instead
-  // of making the user click through a one-row results list.
+  // Typing the exact SO/STO number jumps straight to its detail view — from
+  // whatever tab (Home included) the user was already on — instead of first
+  // hopping to the Search tab and making them click through a one-row list.
   const exact = term && rows.find(r => r.no.toLowerCase() === term.toLowerCase());
   if (exact){
-    openDetail(exact.no);
+    openDetail(exact.no, currentView);
     return;
   }
+
+  // No exact match yet (still typing, multiple matches, or no matches) — the
+  // Search tab is the only place with room to show a list, so switch to it.
+  if (switchToSearchForList) showView('search');
 
   els.count.textContent = term || typeFilter !== 'ALL'
     ? `${rows.length} match${rows.length === 1 ? '' : 'es'}`
@@ -1416,7 +1425,7 @@ function toast(msg){
 
 els.q.addEventListener('input', () => {
   clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(renderList, 180);
+  searchDebounce = setTimeout(() => renderList(true), 180);
 });
 els.toggle.addEventListener('click', e => {
   const btn = e.target.closest('.tt-btn');
@@ -1424,7 +1433,7 @@ els.toggle.addEventListener('click', e => {
   els.toggle.querySelectorAll('.tt-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   typeFilter = btn.dataset.t;
-  renderList();
+  renderList(true);
 });
 
 function tickClock(){
