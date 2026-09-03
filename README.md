@@ -14,13 +14,24 @@ accounts, own process).
 - **Home** — a calendar view of SO/STO activity by day.
 - **Search** — look up any SO/STO by number, customer, or invoice; see full
   order/packslip/invoice status and a history log of what changed and when.
+  Typing an *exact* SO/STO number opens its detail straight away from
+  whatever tab you're already on (Home included) — no need to land on
+  Search first. Partial queries still show a results list on the Search tab.
 - **Alerts** — watch specific items by code; see live matches against
   in-flight SO/STO lines. Production Managers can mark a watched item as
   Produced.
 - **Settings** — theme, default landing tab, **Export** (CSV of your watchlist
   or current Search results), and (admin only) the data-sync controls below.
 - **CMS** (admin only) — manage user accounts, per-user tab visibility,
-  Production Manager grants, and upload the source data files.
+  Production Manager grants, and upload the source data files. Shares the
+  same sidebar nav as the rest of the app (with CMS shown active), rather
+  than being a dead-end page.
+
+### Look & feel
+The UI follows the same navy/blue corporate palette, Calibri typography, and
+sidebar/topbar treatment as the Peps Industries Product Contribution Tool, so
+the two feel like one family of internal tools rather than unrelated apps.
+Applies across login, the main app, and CMS, in both light and dark theme.
 
 ### Installable on phone (PWA)
 The app is a Progressive Web App, so it opens like a native app on **both
