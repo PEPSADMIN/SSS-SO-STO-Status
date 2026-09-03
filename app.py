@@ -99,6 +99,7 @@ def logout():
 # ── Main page ─────────────────────────────────────────
 def _render_so_sto():
     user = current_user()
+    assert user is not None  # guaranteed by @login_required on every caller
     return render_template(
         "so_sto.html",
         user=user,
@@ -149,7 +150,8 @@ def admin_add_user():
     body = request.get_json(silent=True) or {}
     username = (body.get("username") or "").strip()
     password = body.get("password") or ""
-    role = body.get("role") if body.get("role") in ("admin", "user") else "user"
+    role_in = body.get("role")
+    role = role_in if role_in in ("admin", "user") else "user"
     if not username or not password:
         return jsonify({"error": "username and password are required"}), 400
     if auth_db.get_user(username):
@@ -235,8 +237,11 @@ def so_sto_sync_interval():
     Sync Now; see _background_sync_loop() below."""
     if request.method == "POST":
         body = request.get_json(silent=True) or {}
+        minutes_raw = body.get("minutes")
+        if minutes_raw is None:
+            return jsonify({"error": "minutes must be a number"}), 400
         try:
-            minutes = int(body.get("minutes"))
+            minutes = int(minutes_raw)
         except (TypeError, ValueError):
             return jsonify({"error": "minutes must be a number"}), 400
         if minutes < so_sto_db.MIN_SYNC_INTERVAL_MINUTES:
@@ -263,8 +268,11 @@ def _csv_response(rows: list[dict], fieldnames: list[str], filename: str):
     for r in rows:
         w.writerow(r)
     out = buf.getvalue().encode("utf-8-sig")  # BOM so Excel reads UTF-8 cleanly
+    # response_class is typed as `type[Response]`, but pyright resolves its
+    # constructor overload oddly here (flags a correct call either way) —
+    # verified against the real werkzeug Response.__init__ signature at runtime.
     return app.response_class(
-        out,
+        response=out,  # pyright: ignore[reportCallIssue]
         mimetype="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
@@ -275,6 +283,7 @@ def _csv_response(rows: list[dict], fieldnames: list[str], filename: str):
 def so_sto_export_watchlist():
     """CSV of the signed-in user's watchlist and every live SO/STO match."""
     user = current_user()
+    assert user is not None  # guaranteed by @login_required
     rows = []
     for w in so_sto_db.list_watchlist(user["username"]):
         matches = so_sto_db.matches_for_item_code(w["item_code"])
@@ -385,6 +394,7 @@ def so_sto_items():
 @login_required
 def so_sto_watchlist():
     user = current_user()
+    assert user is not None  # guaranteed by @login_required
     if request.method == "POST":
         body = request.get_json(silent=True) or {}
         code = (body.get("code") or "").strip()
@@ -415,6 +425,7 @@ def so_sto_watchlist():
 @login_required
 def so_sto_watchlist_delete(watch_id):
     user = current_user()
+    assert user is not None  # guaranteed by @login_required
     ok = so_sto_db.remove_watch(watch_id, user["username"])
     return ("", 204) if ok else (jsonify({"error": "not found"}), 404)
 
@@ -427,6 +438,7 @@ def _require_production_manager(user):
 @login_required
 def so_sto_watchlist_produce(watch_id):
     user = current_user()
+    assert user is not None  # guaranteed by @login_required
     if not _require_production_manager(user):
         return jsonify({"error": "production manager only"}), 403
     ok = so_sto_db.set_watch_status(watch_id, "Produced", by_user=user["username"])
@@ -451,7 +463,9 @@ def so_sto_production_managers():
         username = (body.get("username") or "").strip()
         if not username:
             return jsonify({"error": "username is required"}), 400
-        so_sto_db.grant_production_manager(username, current_user()["username"])
+        granter = current_user()
+        assert granter is not None  # guaranteed by @admin_required
+        so_sto_db.grant_production_manager(username, granter["username"])
         return jsonify({"ok": True}), 201
     return jsonify({"production_managers": so_sto_db.list_production_managers()})
 
