@@ -392,7 +392,7 @@ def list_watchlist(username: str):
         return [dict(r) for r in rows]
 
 
-def add_watch(username: str, item_code: str, item_desc: str, item_cat: str,
+def add_watch(username: str, item_code: str, item_desc: str | None, item_cat: str | None,
               qty: float | None, priority: str) -> int:
     with _connect() as conn:
         cur = conn.execute(
@@ -404,6 +404,7 @@ def add_watch(username: str, item_code: str, item_desc: str, item_cat: str,
             (username, item_code, item_desc, item_cat, qty, priority, _now()),
         )
         conn.commit()
+        assert cur.lastrowid is not None
         return cur.lastrowid
 
 
