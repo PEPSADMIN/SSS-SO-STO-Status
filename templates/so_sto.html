@@ -1396,6 +1396,7 @@ async function renderList(switchToSearchForList){
           return balance > 0 ? `<span class="rcard-balance">Not Dispatched: ${balance}</span>` : '';
         })()}
         ${r.packslip.vehicle ? `<span class="rcard-vehicle">&#128666; ${esc(r.packslip.vehicle)}</span>` : ''}
+        ${r.invoice.gateExitNo && r.invoice.gateExitNo !== '—' ? `<span class="rcard-vehicle">Gate Exit: ${esc(r.invoice.gateExitNo)} &middot; ${esc(r.invoice.date)}</span>` : ''}
       </div>
     </div>
   `).join('');
