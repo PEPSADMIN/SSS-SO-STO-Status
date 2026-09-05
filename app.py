@@ -399,6 +399,17 @@ def so_sto_summary():
     return jsonify(so_sto_db.summary_for_range(start, end))
 
 
+# Fixed pipeline order for grouping multi-status filter results — a rare
+# status (e.g. 12 "Ready to Process") would otherwise be buried under
+# hundreds of a common one (e.g. 309 "Dispatched") when both are selected
+# and results are sorted purely by date, making it look like the filter
+# dropped one of the checked statuses entirely.
+_END_STATUS_ORDER = [
+    "Not Processed", "Ready to Process", "Production Ready",
+    "Ready for Dispatch", "Dispatched", "Order Cancelled",
+]
+
+
 @app.route("/api/so-sto/search")
 @login_required
 def so_sto_search():
@@ -409,6 +420,11 @@ def so_sto_search():
     end_statuses = {s for s in request.args.get("status", "").split(",") if s}
     if end_statuses:
         records = [r for r in records if r["endStatus"] in end_statuses]
+        if len(end_statuses) > 1:
+            # Stable sort: each status group keeps its existing date-desc
+            # order, just clustered together instead of interleaved.
+            records.sort(key=lambda r: _END_STATUS_ORDER.index(r["endStatus"])
+                         if r["endStatus"] in _END_STATUS_ORDER else len(_END_STATUS_ORDER))
     return jsonify({"records": records})
 
 
