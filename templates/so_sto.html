@@ -703,22 +703,28 @@ html.sidebar-collapsed .side-label{ display:none; }
       <div class="screen">
         <!-- HOME / CALENDAR VIEW -->
         <div class="view active" id="view-home">
-          <div class="date-select-row">
-            <button type="button" class="date-trigger" id="dateTriggerBtn">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-              <span id="dateTriggerLabel">Today</span>
-              <span class="dt-caret">&#9662;</span>
-            </button>
-            <span class="home-today-chip" id="jumpTodayBtn">Today</span>
-          </div>
+          <div id="homeCalendarContent">
+            <div class="date-select-row">
+              <button type="button" class="date-trigger" id="dateTriggerBtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                <span id="dateTriggerLabel">Today</span>
+                <span class="dt-caret">&#9662;</span>
+              </button>
+              <span class="home-today-chip" id="jumpTodayBtn">Today</span>
+            </div>
 
-          <div class="day-hdr">
-            <span class="day-hdr-date" id="dayHdrDate"></span>
-            <span class="day-hdr-badge" id="dayHdrBadge"></span>
+            <div class="day-hdr">
+              <span class="day-hdr-date" id="dayHdrDate"></span>
+              <span class="day-hdr-badge" id="dayHdrBadge"></span>
+            </div>
+            <div class="stat-row" id="dayStatRow"></div>
+            <div class="chip-lbl">Documents touched in this period</div>
+            <div id="dayDocList"></div>
           </div>
-          <div class="stat-row" id="dayStatRow"></div>
-          <div class="chip-lbl">Documents touched in this period</div>
-          <div id="dayDocList"></div>
+          <div id="homeSearchResults" hidden>
+            <div class="results-count" id="homeResultsCount"></div>
+            <div id="homeResultsList"></div>
+          </div>
         </div>
 
         <!-- SEARCH / LIST VIEW -->
@@ -1302,6 +1308,10 @@ const els = {
   statusFilterClear: document.getElementById('statusFilterClear'),
   count: document.getElementById('resultsCount'),
   list: document.getElementById('resultsList'),
+  homeCalendarContent: document.getElementById('homeCalendarContent'),
+  homeSearchResults: document.getElementById('homeSearchResults'),
+  homeResultsCount: document.getElementById('homeResultsCount'),
+  homeResultsList: document.getElementById('homeResultsList'),
   viewHome: document.getElementById('view-home'),
   viewSearch: document.getElementById('view-search'),
   viewAlerts: document.getElementById('view-alerts'),
@@ -1327,16 +1337,25 @@ function showView(name){
   document.querySelectorAll('.tab[data-view], .side-tab[data-view]').forEach(t => t.classList.toggle('active', t.dataset.view === name));
   document.querySelector('.screen').scrollTop = 0;
 }
+// Clears any inline search results left over on Home from a previous visit,
+// so navigating away and back always lands on the calendar, not a stale
+// (now-empty-query) results panel.
+function resetHomeSearchMode(){
+  els.homeCalendarContent.hidden = false;
+  els.homeSearchResults.hidden = true;
+}
 document.getElementById('tabbar').addEventListener('click', e => {
   const tab = e.target.closest('.tab');
   if (!tab) return;
   els.q.value = '';
+  resetHomeSearchMode();
   showView(tab.dataset.view);
 });
 document.getElementById('sidebarNav').addEventListener('click', e => {
   const tab = e.target.closest('.side-tab');
   if (!tab) return;
   els.q.value = '';
+  resetHomeSearchMode();
   showView(tab.dataset.view);
 });
 // No forced tab-switch on focus — typing a search works from whatever view
@@ -1357,36 +1376,8 @@ sidebarToggleBtn.addEventListener('click', () => {
 });
 applySidebarState(document.documentElement.classList.contains('sidebar-collapsed'));
 
-async function renderList(switchToSearchForList){
-  const term = els.q.value.trim();
-  const statusParam = [...statusFilterSet].join(',');
-  let data;
-  try {
-    data = await api(`/api/so-sto/search?q=${encodeURIComponent(term)}&type=${typeFilter}&status=${encodeURIComponent(statusParam)}`);
-  } catch (e) {
-    els.count.textContent = '';
-    els.list.innerHTML = `<div class="empty-state"><div>Search failed: ${esc(e.message)}</div></div>`;
-    return;
-  }
-  const rows = data.records || [];
-
-  // Always show the results as a card list — even an exact SO/STO number
-  // match — so opening the detail view is a deliberate click, same as any
-  // other search.
-  if (switchToSearchForList) showView('search');
-
-  els.count.textContent = term || typeFilter !== 'ALL' || statusFilterSet.size
-    ? `${rows.length} match${rows.length === 1 ? '' : 'es'}`
-    : `${rows.length} recent records`;
-
-  if (!rows.length){
-    els.list.innerHTML = `<div class="empty-state">
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <div>No SO/STO found for "${esc(term)}"<br>Check the number and try again</div>
-    </div>`;
-    return;
-  }
-  els.list.innerHTML = rows.map(r => `
+function cardHtml(r){
+  return `
     <div class="rcard" data-no="${esc(r.no)}">
       <div class="rcard-main">
         <div class="rcard-top">
@@ -1411,9 +1402,59 @@ async function renderList(switchToSearchForList){
         ${r.invoice.gateExitNo && r.invoice.gateExitNo !== '—' ? `<span class="rcard-vehicle">Gate Exit: ${esc(r.invoice.gateExitNo)} &middot; ${esc(r.invoice.date)}</span>` : ''}
       </div>
     </div>
-  `).join('');
-  els.list.querySelectorAll('.rcard').forEach(c => {
-    c.addEventListener('click', () => openDetail(c.dataset.no));
+  `;
+}
+
+// On Home, a search renders inline (calendar content swapped out for the
+// results) instead of switching to the Search tab — Home is the one place
+// searching shouldn't feel like leaving. Every other tab still switches to
+// Search, since that's the only place with room for a results list.
+async function renderList(switchToSearchForList){
+  const term = els.q.value.trim();
+  const statusParam = [...statusFilterSet].join(',');
+  const onHome = currentView === 'home';
+  const countEl = onHome ? els.homeResultsCount : els.count;
+  const listEl = onHome ? els.homeResultsList : els.list;
+  const hasActiveQuery = !!(term || typeFilter !== 'ALL' || statusFilterSet.size);
+
+  let data;
+  try {
+    data = await api(`/api/so-sto/search?q=${encodeURIComponent(term)}&type=${typeFilter}&status=${encodeURIComponent(statusParam)}`);
+  } catch (e) {
+    if (onHome) {
+      els.homeCalendarContent.hidden = true;
+      els.homeSearchResults.hidden = false;
+    } else if (switchToSearchForList) {
+      showView('search');
+    }
+    countEl.textContent = '';
+    listEl.innerHTML = `<div class="empty-state"><div>Search failed: ${esc(e.message)}</div></div>`;
+    return;
+  }
+  const rows = data.records || [];
+
+  if (onHome) {
+    els.homeCalendarContent.hidden = hasActiveQuery;
+    els.homeSearchResults.hidden = !hasActiveQuery;
+    if (!hasActiveQuery) return; // back to the calendar, nothing to render
+  } else if (switchToSearchForList) {
+    showView('search');
+  }
+
+  countEl.textContent = hasActiveQuery
+    ? `${rows.length} match${rows.length === 1 ? '' : 'es'}`
+    : `${rows.length} recent records`;
+
+  if (!rows.length){
+    listEl.innerHTML = `<div class="empty-state">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <div>No SO/STO found for "${esc(term)}"<br>Check the number and try again</div>
+    </div>`;
+    return;
+  }
+  listEl.innerHTML = rows.map(cardHtml).join('');
+  listEl.querySelectorAll('.rcard').forEach(c => {
+    c.addEventListener('click', () => openDetail(c.dataset.no, onHome ? 'home' : undefined));
   });
 }
 
@@ -1508,7 +1549,7 @@ async function openDetail(no, origin){
       `).join('') : '<div class="tl-empty">No changes recorded yet — history only tracks what happens after the first sync.</div>'}
     </div>
   `;
-  document.getElementById('backBtn').addEventListener('click', () => { els.q.value = ''; showView(origin); });
+  document.getElementById('backBtn').addEventListener('click', () => { els.q.value = ''; resetHomeSearchMode(); showView(origin); });
   els.viewHome.classList.remove('active');
   els.viewSearch.classList.remove('active');
   els.viewAlerts.classList.remove('active');
