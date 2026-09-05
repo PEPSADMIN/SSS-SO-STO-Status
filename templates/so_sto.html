@@ -1393,7 +1393,7 @@ async function renderList(switchToSearchForList){
         </div>
       </div>
       <div class="rcard-endstate-wrap">
-        <span class="rcard-endstate ${(STATUS_PILL[r.invoice.status]||['grey'])[0]}">${esc(r.invoice.status)}</span>
+        <span class="rcard-endstate ${(STATUS_PILL[r.endStatus]||['grey'])[0]}">${esc(r.endStatus)}</span>
       </div>
       <div class="rcard-corner">
         <span class="rcard-type">${esc(r.type)}</span>

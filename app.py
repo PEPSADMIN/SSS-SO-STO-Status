@@ -211,12 +211,19 @@ def _dispatch_label(order_status_label: str, invoice_status: str, packslip_statu
 def _record_shape(r: dict) -> dict:
     summary = so_sto_db.doc_summary(r["items"])
     order_status = _order_status_label(summary["orderStatus"])
+    dispatch_status = _dispatch_label(order_status, summary["invoice"]["status"], summary["packslip"]["status"])
     return {
         "no": r["doc_no"], "type": r["doc_type"], "date": r["doc_date"], "party": r["party"],
         "orderStatus": order_status,
         "orderedQty": summary["orderedQty"],
         "packslip": {"status": summary["packslip"]["status"], "shippedQty": summary["packslip"]["shippedQty"]},
-        "invoice": {"status": _dispatch_label(order_status, summary["invoice"]["status"], summary["packslip"]["status"])},
+        "invoice": {"status": dispatch_status},
+        # The big end-state badge favors the order's own status over the
+        # generic "Not Invoiced" — nothing dispatch-wise has happened yet,
+        # so where the order stands in processing is the more useful thing
+        # to highlight. The filter and the Invoice pill still use the plain
+        # dispatch_status above, so "Not Invoiced" stays filterable/accurate.
+        "endStatus": order_status if dispatch_status == "Not Invoiced" else dispatch_status,
     }
 
 
