@@ -293,12 +293,20 @@ html.sidebar-collapsed .side-label{ display:none; }
 .dhead-no{ font-family:var(--font-mono); font-size:1.05rem; font-weight:800; letter-spacing:-.01em; }
 .dhead-sub{ font-size:.76rem; color:var(--ink-mut); margin-top:3px; }
 .dispatch-banner{
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; padding:9px 13px;
-  background:var(--st-green-bg); border:1px solid var(--st-green); border-radius:10px;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 4px; padding:9px 13px;
+  border-radius:10px; border:1px solid;
 }
-.dispatch-banner-label{ font-size:.78rem; font-weight:800; letter-spacing:.04em; color:var(--st-green); }
-.dispatch-banner-info{ font-size:.76rem; font-weight:700; color:var(--st-green); }
+.dispatch-banner-label{ font-size:.78rem; font-weight:800; letter-spacing:.04em; }
+.dispatch-banner-info{ font-size:.76rem; font-weight:700; }
 .dispatch-banner-info b{ font-family:var(--font-mono); }
+.dispatch-banner.green{ background:var(--st-green-bg); border-color:var(--st-green); }
+.dispatch-banner.green .dispatch-banner-label, .dispatch-banner.green .dispatch-banner-info{ color:var(--st-green); }
+.dispatch-banner.amber{ background:var(--st-amber-bg); border-color:var(--st-amber); }
+.dispatch-banner.amber .dispatch-banner-label, .dispatch-banner.amber .dispatch-banner-info{ color:var(--st-amber); }
+.dispatch-banner.red{ background:var(--st-red-bg); border-color:var(--st-red); }
+.dispatch-banner.red .dispatch-banner-label, .dispatch-banner.red .dispatch-banner-info{ color:var(--st-red); }
+.dispatch-banner.grey{ background:var(--st-grey-bg); border-color:var(--st-grey); }
+.dispatch-banner.grey .dispatch-banner-label, .dispatch-banner.grey .dispatch-banner-info{ color:var(--st-grey); }
 .dgrid{
   display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin:14px 0 4px;
   background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px;
@@ -939,6 +947,10 @@ const STATUS_PILL = {
   'Not Processed':['grey'], 'Ready to Process':['amber'], 'Production Ready':['green'], 'Cancelled':['red'],
   'Ready for Dispatch':['amber'], 'Dispatched':['green'], 'Order Cancelled':['red'],
 };
+const END_STATUS_ICON = {
+  'Not Processed': '&#128203;', 'Ready to Process': '&#128337;', 'Production Ready': '&#9989;',
+  'Ready for Dispatch': '&#128230;', 'Dispatched': '&#128666;', 'Order Cancelled': '&#10060;',
+};
 function pill(label){
   const cls = (STATUS_PILL[label]||['grey'])[0];
   return `<span class="pill ${cls}"><span class="pill-dot"></span>${esc(label)}</span>`;
@@ -1425,13 +1437,11 @@ async function openDetail(no, origin){
       <div class="dhead-sub">${esc(r.party)} &middot; ${esc(r.place)}</div>
     </div>
 
-    <div class="pill-row">${pill(r.orderStatus)}${pill(r.packslip.status)}${pill(r.invoice.status)}</div>
-
-    ${r.invoice.status === 'Dispatched' ? `
-    <div class="dispatch-banner">
-      <span class="dispatch-banner-label">&#128666; DISPATCHED</span>
-      <span class="dispatch-banner-info">Gate Exit: <b>${esc(r.invoice.gateExitNo)}</b> &middot; ${esc(r.invoice.date)}</span>
-    </div>` : ''}
+    <div class="dispatch-banner ${(STATUS_PILL[r.endStatus]||['grey'])[0]}">
+      <span class="dispatch-banner-label">${END_STATUS_ICON[r.endStatus] || ''} ${esc(r.endStatus).toUpperCase()}</span>
+      ${r.invoice.status === 'Dispatched' ? `
+      <span class="dispatch-banner-info">${r.invoice.gateExitNo && r.invoice.gateExitNo !== '—' ? `Gate Exit: <b>${esc(r.invoice.gateExitNo)}</b> &middot; ${esc(r.invoice.date)}` : esc(r.invoice.date)}</span>` : ''}
+    </div>
 
     <div class="dgrid">
       <div><div class="dg-lbl">${r.type === 'STO' ? 'STO' : 'Order'} Date</div><div class="dg-val mono">${esc(r.date)}</div></div>

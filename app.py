@@ -208,6 +208,15 @@ def _dispatch_label(order_status_label: str, invoice_status: str, packslip_statu
     return invoice_status
 
 
+def _end_status(order_status: str, dispatch_status: str) -> str:
+    """The single "what actually matters right now" status shown as the big
+    highlight (search card badge, detail page banner) — favors the order's
+    own status over the generic "Not Invoiced" wording. The plain
+    dispatch_status stays available separately for the Invoice pill and the
+    status filter, so "Not Invoiced" stays filterable/accurate there."""
+    return order_status if dispatch_status == "Not Invoiced" else dispatch_status
+
+
 def _record_shape(r: dict) -> dict:
     summary = so_sto_db.doc_summary(r["items"])
     order_status = _order_status_label(summary["orderStatus"])
@@ -225,12 +234,7 @@ def _record_shape(r: dict) -> dict:
             "gateExitNo": summary["invoice"]["gateExitNo"],
             "date": summary["invoice"]["date"],
         },
-        # The big end-state badge favors the order's own status over the
-        # generic "Not Invoiced" — nothing dispatch-wise has happened yet,
-        # so where the order stands in processing is the more useful thing
-        # to highlight. The filter and the Invoice pill still use the plain
-        # dispatch_status above, so "Not Invoiced" stays filterable/accurate.
-        "endStatus": order_status if dispatch_status == "Not Invoiced" else dispatch_status,
+        "endStatus": _end_status(order_status, dispatch_status),
     }
 
 
@@ -421,13 +425,15 @@ def so_sto_doc(doc_no):
     ]
     order_status = _order_status_label(summary["orderStatus"])
     invoice = dict(summary["invoice"])
-    invoice["status"] = _dispatch_label(order_status, invoice["status"], summary["packslip"]["status"])
+    dispatch_status = _dispatch_label(order_status, invoice["status"], summary["packslip"]["status"])
+    invoice["status"] = dispatch_status
     return jsonify({
         "no": d["doc_no"], "type": d["doc_type"], "date": d["doc_date"], "required": d["required_date"],
         "party": d["party"], "partyRole": "Route" if d["doc_type"] == "STO" else "Customer",
         "place": d["place"], "person": d["person"],
         "orderStatus": order_status, "orderedQty": summary["orderedQty"],
         "packslip": summary["packslip"], "invoice": invoice,
+        "endStatus": _end_status(order_status, dispatch_status),
         "items": [{"code": it["item_code"], "name": it["item_desc"], "qty": it["ordered_qty"]} for it in d["items"]],
         "history": history,
     })
