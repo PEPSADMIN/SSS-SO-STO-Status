@@ -391,6 +391,9 @@ def so_sto_search():
     statuses = {s for s in request.args.get("status", "").split(",") if s}
     if statuses:
         records = [r for r in records if r["invoice"]["status"] in statuses]
+    order_statuses = {s for s in request.args.get("orderStatus", "").split(",") if s}
+    if order_statuses:
+        records = [r for r in records if r["orderStatus"] in order_statuses]
     return jsonify({"records": records})
 
 
