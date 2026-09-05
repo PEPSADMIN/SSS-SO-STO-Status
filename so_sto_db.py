@@ -57,6 +57,7 @@ def init_db():
                 invoice_date TEXT,
                 invoice_value REAL,
                 gate_exit_no TEXT,
+                vehicle TEXT,
                 synced_at TEXT,
                 PRIMARY KEY (doc_no, item_code)
             )
@@ -65,6 +66,8 @@ def init_db():
         snapshot_cols = [r["name"] for r in conn.execute("PRAGMA table_info(so_sto_snapshot)").fetchall()]
         if "gate_exit_no" not in snapshot_cols:
             conn.execute("ALTER TABLE so_sto_snapshot ADD COLUMN gate_exit_no TEXT")
+        if "vehicle" not in snapshot_cols:
+            conn.execute("ALTER TABLE so_sto_snapshot ADD COLUMN vehicle TEXT")
 
         conn.execute(
             """
@@ -210,12 +213,12 @@ def upsert_snapshot(rows: list[dict]):
                 doc_no, item_code, doc_type, doc_date, doc_status, party, place, person,
                 item_desc, uom, ordered_qty, required_date, packslip_no, packslip_status,
                 shipped_date, shipped_qty, pending_qty, invoice_no, invoice_status,
-                invoice_date, invoice_value, gate_exit_no, synced_at
+                invoice_date, invoice_value, gate_exit_no, vehicle, synced_at
             ) VALUES (
                 :doc_no, :item_code, :doc_type, :doc_date, :doc_status, :party, :place, :person,
                 :item_desc, :uom, :ordered_qty, :required_date, :packslip_no, :packslip_status,
                 :shipped_date, :shipped_qty, :pending_qty, :invoice_no, :invoice_status,
-                :invoice_date, :invoice_value, :gate_exit_no, :synced_at
+                :invoice_date, :invoice_value, :gate_exit_no, :vehicle, :synced_at
             )
             """,
             rows,
@@ -270,6 +273,7 @@ def doc_summary(items: list[dict]) -> dict:
             "status": best["packslip_status"],
             "shippedDate": best["shipped_date"] or "—",
             "shippedQty": sum(r["shipped_qty"] or 0 for r in items),
+            "vehicle": best.get("vehicle") or None,
         },
         "invoice": {
             "no": best["invoice_no"] or "—",

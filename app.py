@@ -216,7 +216,10 @@ def _record_shape(r: dict) -> dict:
         "no": r["doc_no"], "type": r["doc_type"], "date": r["doc_date"], "party": r["party"],
         "orderStatus": order_status,
         "orderedQty": summary["orderedQty"],
-        "packslip": {"status": summary["packslip"]["status"], "shippedQty": summary["packslip"]["shippedQty"]},
+        "packslip": {
+            "status": summary["packslip"]["status"], "shippedQty": summary["packslip"]["shippedQty"],
+            "vehicle": summary["packslip"]["vehicle"],
+        },
         "invoice": {"status": dispatch_status},
         # The big end-state badge favors the order's own status over the
         # generic "Not Invoiced" — nothing dispatch-wise has happened yet,

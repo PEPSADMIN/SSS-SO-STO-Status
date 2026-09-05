@@ -257,6 +257,7 @@ html.sidebar-collapsed .side-label{ display:none; }
   background:var(--accent-dim); color:var(--accent); flex-shrink:0;
 }
 .rcard-balance{ font-size:.62rem; font-weight:700; color:var(--st-amber); white-space:nowrap; text-align:right; }
+.rcard-vehicle{ font-size:.62rem; font-weight:600; color:var(--ink-dim); white-space:nowrap; text-align:right; font-family:var(--font-mono); }
 .rcard-endstate-wrap{ flex:1; display:flex; justify-content:center; align-items:center; min-width:0; }
 .rcard-endstate{
   font-size:1.05rem; font-weight:800; letter-spacing:.02em; white-space:nowrap;
@@ -1394,6 +1395,7 @@ async function renderList(switchToSearchForList){
           const balance = Number(((r.orderedQty || 0) - (r.packslip.shippedQty || 0)).toFixed(2));
           return balance > 0 ? `<span class="rcard-balance">Not Dispatched: ${balance}</span>` : '';
         })()}
+        ${r.packslip.vehicle ? `<span class="rcard-vehicle">&#128666; ${esc(r.packslip.vehicle)}</span>` : ''}
       </div>
     </div>
   `).join('');

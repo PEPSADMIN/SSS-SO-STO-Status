@@ -86,6 +86,19 @@ def _clean_num(v):
         return 0.0
 
 
+def _clean_vehicle(v):
+    """"Truck No./Driver No." packs truck no, a blank slot, and driver phone
+    as e.g. "TN59CK3188|31.07.2026 /  / 9567244914" — strips the redundant
+    date (already shown elsewhere) and empty slots, keeping just the parts
+    worth showing on a card."""
+    v = _clean(v)
+    if not v:
+        return None
+    parts = [p.split("|")[0].strip() for p in v.split("/")]
+    parts = [p for p in parts if p]
+    return " · ".join(parts) if parts else None
+
+
 def _clean_date(v):
     if pd.isna(v):
         return None
@@ -142,6 +155,7 @@ def _normalize_so(df: pd.DataFrame) -> list[dict]:
             "invoice_date": _clean_date(r.get("Invoice Date")),
             "invoice_value": _clean_num(r.get("Invoice Value")),
             "gate_exit_no": _clean(r.get("Gate Exit No.")),
+            "vehicle": _clean_vehicle(r.get("Truck No./Driver No.")),
         })
     return rows
 
@@ -180,6 +194,7 @@ def _normalize_sto(df: pd.DataFrame) -> list[dict]:
             "invoice_date": _clean_date(r.get("Invoice Date")),
             "invoice_value": _clean_num(r.get("Invoice Value")),
             "gate_exit_no": _clean(r.get("Gate Exit No.")),
+            "vehicle": _clean_vehicle(r.get("Truck No./Driver No.")),
         })
     return rows
 
