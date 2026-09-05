@@ -184,6 +184,20 @@ html.sidebar-collapsed .side-label{ display:none; }
 }
 .tt-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
 
+.status-filter-row{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; align-items:center; }
+.sf-btn{
+  border:1px solid var(--border); background:transparent; color:var(--ink-mut);
+  font-size:.68rem; font-weight:700; letter-spacing:.02em; padding:5px 11px; border-radius:8px; cursor:pointer;
+}
+.sf-btn.active.grey{ background:var(--st-grey-bg); border-color:var(--st-grey); color:var(--st-grey); }
+.sf-btn.active.amber{ background:var(--st-amber-bg); border-color:var(--st-amber); color:var(--st-amber); }
+.sf-btn.active.green{ background:var(--st-green-bg); border-color:var(--st-green); color:var(--st-green); }
+.sf-btn.active.red{ background:var(--st-red-bg); border-color:var(--st-red); color:var(--st-red); }
+.sf-clear{
+  border:none; background:none; color:var(--accent); font-size:.68rem; font-weight:700; cursor:pointer;
+  padding:5px 4px; margin-left:2px;
+}
+
 .sync-strip{
   margin-top:10px; display:flex; align-items:center; gap:8px;
   background:var(--surface2); border:1px solid var(--border); border-radius:10px;
@@ -635,6 +649,13 @@ html.sidebar-collapsed .side-label{ display:none; }
           <button type="button" class="tt-btn active" data-t="ALL">All</button>
           <button type="button" class="tt-btn" data-t="SO">SO</button>
           <button type="button" class="tt-btn" data-t="STO">STO</button>
+        </div>
+        <div class="status-filter-row" id="statusFilter">
+          <button type="button" class="sf-btn" data-s="Not Invoiced">Not Invoiced</button>
+          <button type="button" class="sf-btn" data-s="Ready for Dispatch">Ready for Dispatch</button>
+          <button type="button" class="sf-btn" data-s="Dispatched">Dispatched</button>
+          <button type="button" class="sf-btn" data-s="Order Cancelled">Order Cancelled</button>
+          <button type="button" class="sf-clear" id="statusFilterClear" hidden>Clear</button>
         </div>
         <div class="sync-strip">
           <span class="sync-dot"></span>
@@ -1236,6 +1257,8 @@ function updateImAddBtnState(){
 const els = {
   q: document.getElementById('q'),
   toggle: document.getElementById('typeToggle'),
+  statusFilter: document.getElementById('statusFilter'),
+  statusFilterClear: document.getElementById('statusFilterClear'),
   count: document.getElementById('resultsCount'),
   list: document.getElementById('resultsList'),
   viewHome: document.getElementById('view-home'),
@@ -1246,6 +1269,7 @@ const els = {
   toast: document.getElementById('toast'),
 };
 let typeFilter = 'ALL';
+const statusFilterSet = new Set();
 const ALLOWED_TABS = (document.body.dataset.tabs || '').split(',').filter(Boolean);
 let defaultLanding = localStorage.getItem('so_sto_landing') || 'home';
 if (!ALLOWED_TABS.includes(defaultLanding)) defaultLanding = ALLOWED_TABS[0] || 'home';
@@ -1294,9 +1318,10 @@ applySidebarState(document.documentElement.classList.contains('sidebar-collapsed
 
 async function renderList(switchToSearchForList){
   const term = els.q.value.trim();
+  const statusParam = [...statusFilterSet].join(',');
   let data;
   try {
-    data = await api(`/api/so-sto/search?q=${encodeURIComponent(term)}&type=${typeFilter}`);
+    data = await api(`/api/so-sto/search?q=${encodeURIComponent(term)}&type=${typeFilter}&status=${encodeURIComponent(statusParam)}`);
   } catch (e) {
     els.count.textContent = '';
     els.list.innerHTML = `<div class="empty-state"><div>Search failed: ${esc(e.message)}</div></div>`;
@@ -1309,7 +1334,7 @@ async function renderList(switchToSearchForList){
   // other search.
   if (switchToSearchForList) showView('search');
 
-  els.count.textContent = term || typeFilter !== 'ALL'
+  els.count.textContent = term || typeFilter !== 'ALL' || statusFilterSet.size
     ? `${rows.length} match${rows.length === 1 ? '' : 'es'}`
     : `${rows.length} recent records`;
 
@@ -1337,6 +1362,7 @@ async function renderList(switchToSearchForList){
       <div class="rcard-corner">
         <span class="rcard-type">${esc(r.type)}</span>
         ${(() => {
+          if (r.invoice.status === 'Order Cancelled') return '';
           const balance = Number(((r.orderedQty || 0) - (r.packslip.shippedQty || 0)).toFixed(2));
           return balance > 0 ? `<span class="rcard-balance">Not Dispatched: ${balance}</span>` : '';
         })()}
@@ -1468,6 +1494,33 @@ els.toggle.addEventListener('click', e => {
   btn.classList.add('active');
   typeFilter = btn.dataset.t;
   els.q.value = '';
+  renderList(true);
+});
+
+// Status filter — each button toggles independently (multi-select), so a
+// search can match "Dispatched OR Order Cancelled" etc. at the same time.
+els.statusFilter.addEventListener('click', e => {
+  if (e.target.closest('#statusFilterClear')) {
+    statusFilterSet.clear();
+    els.statusFilter.querySelectorAll('.sf-btn').forEach(b => {
+      b.classList.remove('active', 'green', 'amber', 'grey', 'red', 'teal');
+    });
+    els.statusFilterClear.hidden = true;
+    renderList(true);
+    return;
+  }
+  const btn = e.target.closest('.sf-btn');
+  if (!btn) return;
+  const status = btn.dataset.s;
+  const colorClass = (STATUS_PILL[status] || ['grey'])[0];
+  if (statusFilterSet.has(status)) {
+    statusFilterSet.delete(status);
+    btn.classList.remove('active', colorClass);
+  } else {
+    statusFilterSet.add(status);
+    btn.classList.add('active', colorClass);
+  }
+  els.statusFilterClear.hidden = statusFilterSet.size === 0;
   renderList(true);
 });
 

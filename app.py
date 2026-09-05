@@ -387,7 +387,11 @@ def so_sto_search():
     term = request.args.get("q", "").strip()
     doc_type = request.args.get("type", "ALL")
     docs = so_sto_db.search_docs(term, doc_type)
-    return jsonify({"records": [_record_shape(d) for d in docs]})
+    records = [_record_shape(d) for d in docs]
+    statuses = {s for s in request.args.get("status", "").split(",") if s}
+    if statuses:
+        records = [r for r in records if r["invoice"]["status"] in statuses]
+    return jsonify({"records": records})
 
 
 @app.route("/api/so-sto/doc/<path:doc_no>")
