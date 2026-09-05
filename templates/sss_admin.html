@@ -67,12 +67,12 @@
     html.sidebar-collapsed .side-tab { justify-content: center; padding: 10px 0; }
     html.sidebar-collapsed .side-label { display: none; }
 
-    .content { flex: 1; min-height: 0; overflow-y: auto; max-width: 780px; margin: 0 auto; padding: 26px 20px 60px; width: 100%; }
+    .content { flex: 1; min-height: 0; overflow-y: auto; padding: 26px 20px 60px; width: 100%; }
     h1 { font-size: 1.3em; margin: 0 0 4px; }
     .page-sub { color: var(--text-mut); font-size: .85em; margin: 0 0 20px; }
     .panel { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(16,24,38,.04); }
     .panel h2, .overlay-card h2 { font-size: 1em; margin: 0 0 4px; }
-    .inline-form-field.field-full { flex-basis: 100%; }
+    .inline-form-field.field-full { flex-basis: 100%; max-width: none; }
     .overlay-card .field-spaced { margin-top: 12px; }
     .panel-sub { font-size: .8em; color: var(--text-mut); margin: 0 0 14px; }
     table { width: 100%; border-collapse: collapse; font-size: .85em; }
@@ -86,7 +86,7 @@
     .row-actions button:hover { background: var(--row-btn-hover); }
     .row-actions .danger:hover { background: var(--danger-hover-bg); border-color: var(--danger-hover-border); color: var(--danger-hover-text); }
     .inline-form { display: flex; gap: 10px; align-items: end; margin-bottom: 16px; flex-wrap: wrap; }
-    .inline-form-field { flex: 1; min-width: 140px; }
+    .inline-form-field { flex: 1; min-width: 140px; max-width: 320px; }
     .inline-form-field.role-field { flex: 0 0 120px; }
     label { display: block; font-size: .72em; color: var(--text-mut); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
     input[type=text], input[type=password], input[type=file], select {
