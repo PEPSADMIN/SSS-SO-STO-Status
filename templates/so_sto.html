@@ -210,19 +210,35 @@ html.sidebar-collapsed .side-label{ display:none; }
 .results-count{ font-size:.68rem; color:var(--ink-dim); margin:0 0 8px; font-weight:600; }
 
 .rcard{
+  position:relative; display:flex; align-items:center; gap:10px;
   border:1px solid var(--border); border-radius:13px; padding:12px 13px; margin-bottom:10px; cursor:pointer;
   background:var(--surface); transition:border-color .12s, transform .12s;
 }
 .rcard:hover{ border-color:var(--accent); }
 .rcard:active{ transform:scale(.99); }
-.rcard-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.rcard-main{ flex:1; min-width:0; padding-right:64px; }
+.rcard-top{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
 .rcard-no{ font-family:var(--font-mono); font-size:.82rem; font-weight:700; }
+.rcard-sub{ font-size:.74rem; color:var(--ink-mut); margin-bottom:9px; }
+.pill-row{ display:flex; gap:6px; flex-wrap:wrap; }
+.rcard-corner{
+  position:absolute; top:10px; right:13px; display:flex; flex-direction:column; align-items:flex-end; gap:4px;
+}
 .rcard-type{
   font-size:.6rem; font-weight:800; letter-spacing:.06em; padding:2px 6px; border-radius:5px;
   background:var(--accent-dim); color:var(--accent); flex-shrink:0;
 }
-.rcard-sub{ font-size:.74rem; color:var(--ink-mut); margin-bottom:9px; }
-.pill-row{ display:flex; gap:6px; flex-wrap:wrap; }
+.rcard-balance{ font-size:.62rem; font-weight:700; color:var(--st-amber); white-space:nowrap; text-align:right; }
+.rcard-endstate-wrap{ flex:1; display:flex; justify-content:center; align-items:center; min-width:0; }
+.rcard-endstate{
+  font-size:1.05rem; font-weight:800; letter-spacing:.02em; white-space:nowrap;
+  padding:6px 18px; border-radius:10px;
+}
+.rcard-endstate.green{ background:var(--st-green-bg); color:var(--st-green); }
+.rcard-endstate.amber{ background:var(--st-amber-bg); color:var(--st-amber); }
+.rcard-endstate.grey{ background:var(--st-grey-bg); color:var(--st-grey); }
+.rcard-endstate.red{ background:var(--st-red-bg); color:var(--st-red); }
+.rcard-endstate.teal{ background:var(--st-teal-bg); color:var(--st-teal); }
 
 .pill{
   display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700;
@@ -247,6 +263,13 @@ html.sidebar-collapsed .side-label{ display:none; }
 .dhead{ margin-bottom:14px; }
 .dhead-no{ font-family:var(--font-mono); font-size:1.05rem; font-weight:800; letter-spacing:-.01em; }
 .dhead-sub{ font-size:.76rem; color:var(--ink-mut); margin-top:3px; }
+.dispatch-banner{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; padding:9px 13px;
+  background:var(--st-green-bg); border:1px solid var(--st-green); border-radius:10px;
+}
+.dispatch-banner-label{ font-size:.78rem; font-weight:800; letter-spacing:.04em; color:var(--st-green); }
+.dispatch-banner-info{ font-size:.76rem; font-weight:700; color:var(--st-green); }
+.dispatch-banner-info b{ font-family:var(--font-mono); }
 .dgrid{
   display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin:14px 0 4px;
   background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px;
@@ -865,6 +888,9 @@ const STATUS_PILL = {
   'Not Invoiced':['grey'], 'Invoiced':['green'],
   'Low':['grey'], 'Normal':['teal'], 'High':['amber'], 'Urgent':['red'],
   'Open':['amber'], 'Produced':['green'],
+  // Friendlier order/dispatch labels (see app.py's _order_status_label/_dispatch_label)
+  'Not Processed':['grey'], 'Ready to Process':['amber'], 'Production Ready':['green'], 'Cancelled':['red'],
+  'Ready for Dispatch':['amber'], 'Dispatched':['green'], 'Order Cancelled':['red'],
 };
 function pill(label){
   const cls = (STATUS_PILL[label]||['grey'])[0];
@@ -1239,11 +1265,13 @@ function showView(name){
 document.getElementById('tabbar').addEventListener('click', e => {
   const tab = e.target.closest('.tab');
   if (!tab) return;
+  els.q.value = '';
   showView(tab.dataset.view);
 });
 document.getElementById('sidebarNav').addEventListener('click', e => {
   const tab = e.target.closest('.side-tab');
   if (!tab) return;
+  els.q.value = '';
   showView(tab.dataset.view);
 });
 // No forced tab-switch on focus — typing a search works from whatever view
@@ -1276,17 +1304,9 @@ async function renderList(switchToSearchForList){
   }
   const rows = data.records || [];
 
-  // Typing the exact SO/STO number jumps straight to its detail view — from
-  // whatever tab (Home included) the user was already on — instead of first
-  // hopping to the Search tab and making them click through a one-row list.
-  const exact = term && rows.find(r => r.no.toLowerCase() === term.toLowerCase());
-  if (exact){
-    openDetail(exact.no, currentView);
-    return;
-  }
-
-  // No exact match yet (still typing, multiple matches, or no matches) — the
-  // Search tab is the only place with room to show a list, so switch to it.
+  // Always show the results as a card list — even an exact SO/STO number
+  // match — so opening the detail view is a deliberate click, same as any
+  // other search.
   if (switchToSearchForList) showView('search');
 
   els.count.textContent = term || typeFilter !== 'ALL'
@@ -1302,13 +1322,24 @@ async function renderList(switchToSearchForList){
   }
   els.list.innerHTML = rows.map(r => `
     <div class="rcard" data-no="${esc(r.no)}">
-      <div class="rcard-top">
-        <span class="rcard-no">${esc(r.no)}</span>
-        <span class="rcard-type">${esc(r.type)}</span>
+      <div class="rcard-main">
+        <div class="rcard-top">
+          <span class="rcard-no">${esc(r.no)}</span>
+        </div>
+        <div class="rcard-sub">${esc(r.party)} &middot; ${esc(r.date)}</div>
+        <div class="pill-row">
+          ${pill(r.orderStatus)}${pill(r.packslip.status)}${pill(r.invoice.status)}
+        </div>
       </div>
-      <div class="rcard-sub">${esc(r.party)} &middot; ${esc(r.date)}</div>
-      <div class="pill-row">
-        ${pill(r.orderStatus)}${pill(r.packslip.status)}${pill(r.invoice.status)}
+      <div class="rcard-endstate-wrap">
+        <span class="rcard-endstate ${(STATUS_PILL[r.invoice.status]||['grey'])[0]}">${esc(r.invoice.status)}</span>
+      </div>
+      <div class="rcard-corner">
+        <span class="rcard-type">${esc(r.type)}</span>
+        ${(() => {
+          const balance = Number(((r.orderedQty || 0) - (r.packslip.shippedQty || 0)).toFixed(2));
+          return balance > 0 ? `<span class="rcard-balance">Not Dispatched: ${balance}</span>` : '';
+        })()}
       </div>
     </div>
   `).join('');
@@ -1338,6 +1369,12 @@ async function openDetail(no, origin){
     </div>
 
     <div class="pill-row">${pill(r.orderStatus)}${pill(r.packslip.status)}${pill(r.invoice.status)}</div>
+
+    ${r.invoice.status === 'Dispatched' ? `
+    <div class="dispatch-banner">
+      <span class="dispatch-banner-label">&#128666; DISPATCHED</span>
+      <span class="dispatch-banner-info">Gate Exit: <b>${esc(r.invoice.gateExitNo)}</b> &middot; ${esc(r.invoice.date)}</span>
+    </div>` : ''}
 
     <div class="dgrid">
       <div><div class="dg-lbl">${r.type === 'STO' ? 'STO' : 'Order'} Date</div><div class="dg-val mono">${esc(r.date)}</div></div>
@@ -1404,7 +1441,7 @@ async function openDetail(no, origin){
       `).join('') : '<div class="tl-empty">No changes recorded yet — history only tracks what happens after the first sync.</div>'}
     </div>
   `;
-  document.getElementById('backBtn').addEventListener('click', () => showView(origin));
+  document.getElementById('backBtn').addEventListener('click', () => { els.q.value = ''; showView(origin); });
   els.viewHome.classList.remove('active');
   els.viewSearch.classList.remove('active');
   els.viewAlerts.classList.remove('active');
@@ -1430,6 +1467,7 @@ els.toggle.addEventListener('click', e => {
   els.toggle.querySelectorAll('.tt-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   typeFilter = btn.dataset.t;
+  els.q.value = '';
   renderList(true);
 });
 

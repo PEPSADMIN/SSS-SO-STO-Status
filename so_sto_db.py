@@ -56,11 +56,16 @@ def init_db():
                 invoice_status TEXT,
                 invoice_date TEXT,
                 invoice_value REAL,
+                gate_exit_no TEXT,
                 synced_at TEXT,
                 PRIMARY KEY (doc_no, item_code)
             )
             """
         )
+        snapshot_cols = [r["name"] for r in conn.execute("PRAGMA table_info(so_sto_snapshot)").fetchall()]
+        if "gate_exit_no" not in snapshot_cols:
+            conn.execute("ALTER TABLE so_sto_snapshot ADD COLUMN gate_exit_no TEXT")
+
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS so_sto_history (
@@ -205,12 +210,12 @@ def upsert_snapshot(rows: list[dict]):
                 doc_no, item_code, doc_type, doc_date, doc_status, party, place, person,
                 item_desc, uom, ordered_qty, required_date, packslip_no, packslip_status,
                 shipped_date, shipped_qty, pending_qty, invoice_no, invoice_status,
-                invoice_date, invoice_value, synced_at
+                invoice_date, invoice_value, gate_exit_no, synced_at
             ) VALUES (
                 :doc_no, :item_code, :doc_type, :doc_date, :doc_status, :party, :place, :person,
                 :item_desc, :uom, :ordered_qty, :required_date, :packslip_no, :packslip_status,
                 :shipped_date, :shipped_qty, :pending_qty, :invoice_no, :invoice_status,
-                :invoice_date, :invoice_value, :synced_at
+                :invoice_date, :invoice_value, :gate_exit_no, :synced_at
             )
             """,
             rows,
@@ -271,6 +276,7 @@ def doc_summary(items: list[dict]) -> dict:
             "status": best["invoice_status"],
             "date": best["invoice_date"] or "—",
             "value": sum(r["invoice_value"] or 0 for r in items) or None,
+            "gateExitNo": best.get("gate_exit_no") or "—",
         },
     }
 

@@ -178,13 +178,45 @@ def admin_delete_user(user_id):
 
 
 # ── SO / STO API ──────────────────────────────────────
+# Friendlier labels for the raw order-lifecycle status, requested in place of
+# the ERP's own Fresh/Authorized/Closed/Deleted vocabulary.
+_ORDER_STATUS_LABELS = {
+    "Fresh": "Not Processed",
+    "Deleted": "Cancelled",
+    "Short Closed": "Cancelled",
+    "Authorized": "Ready to Process",
+    "Closed": "Production Ready",
+}
+
+
+def _order_status_label(raw: str) -> str:
+    return _ORDER_STATUS_LABELS.get(raw, raw)
+
+
+def _dispatch_label(order_status_label: str, invoice_status: str, packslip_status: str) -> str:
+    """Replaces the plain Invoiced/Not Invoiced wording with the dispatch
+    pipeline's own vocabulary: once packed it's "Ready for Dispatch", and
+    once invoiced (which is when the gate pass gets raised) it's "Dispatched".
+    A cancelled order overrides all of that — packslip/invoice fields are
+    stale leftovers on a dead order, not a real dispatch state."""
+    if order_status_label == "Cancelled":
+        return "Order Cancelled"
+    if invoice_status == "Invoiced":
+        return "Dispatched"
+    if packslip_status == "Shipped":
+        return "Ready for Dispatch"
+    return invoice_status
+
+
 def _record_shape(r: dict) -> dict:
     summary = so_sto_db.doc_summary(r["items"])
+    order_status = _order_status_label(summary["orderStatus"])
     return {
         "no": r["doc_no"], "type": r["doc_type"], "date": r["doc_date"], "party": r["party"],
-        "orderStatus": summary["orderStatus"],
-        "packslip": {"status": summary["packslip"]["status"]},
-        "invoice": {"status": summary["invoice"]["status"]},
+        "orderStatus": order_status,
+        "orderedQty": summary["orderedQty"],
+        "packslip": {"status": summary["packslip"]["status"], "shippedQty": summary["packslip"]["shippedQty"]},
+        "invoice": {"status": _dispatch_label(order_status, summary["invoice"]["status"], summary["packslip"]["status"])},
     }
 
 
@@ -369,12 +401,15 @@ def so_sto_doc(doc_no):
         {"when": _fmt_when(h["occurred_at"]), "what": h["event_text"]}
         for h in so_sto_db.history_for_doc(doc_no)
     ]
+    order_status = _order_status_label(summary["orderStatus"])
+    invoice = dict(summary["invoice"])
+    invoice["status"] = _dispatch_label(order_status, invoice["status"], summary["packslip"]["status"])
     return jsonify({
         "no": d["doc_no"], "type": d["doc_type"], "date": d["doc_date"], "required": d["required_date"],
         "party": d["party"], "partyRole": "Route" if d["doc_type"] == "STO" else "Customer",
         "place": d["place"], "person": d["person"],
-        "orderStatus": summary["orderStatus"], "orderedQty": summary["orderedQty"],
-        "packslip": summary["packslip"], "invoice": summary["invoice"],
+        "orderStatus": order_status, "orderedQty": summary["orderedQty"],
+        "packslip": summary["packslip"], "invoice": invoice,
         "items": [{"code": it["item_code"], "name": it["item_desc"], "qty": it["ordered_qty"]} for it in d["items"]],
         "history": history,
     })

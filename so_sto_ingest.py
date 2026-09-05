@@ -141,6 +141,7 @@ def _normalize_so(df: pd.DataFrame) -> list[dict]:
             "invoice_status": _derive_invoice_status(invoice_no),
             "invoice_date": _clean_date(r.get("Invoice Date")),
             "invoice_value": _clean_num(r.get("Invoice Value")),
+            "gate_exit_no": _clean(r.get("Gate Exit No.")),
         })
     return rows
 
@@ -178,6 +179,7 @@ def _normalize_sto(df: pd.DataFrame) -> list[dict]:
             "invoice_status": _derive_invoice_status(invoice_no),
             "invoice_date": _clean_date(r.get("Invoice Date")),
             "invoice_value": _clean_num(r.get("Invoice Value")),
+            "gate_exit_no": _clean(r.get("Gate Exit No.")),
         })
     return rows
 

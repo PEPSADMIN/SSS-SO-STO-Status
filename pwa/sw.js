@@ -5,7 +5,7 @@
      available offline; live data is fetched when online.
    Auth is cookie-based, so credentials are included on every fetch.
 */
-const CACHE = 'sss-tool-v1';
+const CACHE = 'sss-tool-v2';
 const APP_SHELL = [
   '/',
   '/login',
