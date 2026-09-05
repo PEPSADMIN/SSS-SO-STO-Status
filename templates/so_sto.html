@@ -177,14 +177,15 @@ html.sidebar-collapsed .side-label{ display:none; }
 }
 .search-box input::placeholder{ color:var(--ink-dim); font-family:var(--font-ui); }
 
-.type-toggle{ display:flex; gap:6px; margin-top:9px; }
+.filter-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:9px; }
+.type-toggle{ display:flex; gap:6px; }
 .tt-btn{
   border:1px solid var(--border); background:transparent; color:var(--ink-mut);
   font-size:.71rem; font-weight:700; letter-spacing:.02em; padding:5px 12px; border-radius:8px; cursor:pointer;
 }
 .tt-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
 
-.status-filter{ position:relative; display:inline-block; margin-top:8px; }
+.status-filter{ position:relative; display:inline-block; flex-shrink:0; }
 .sf-trigger{
   display:flex; align-items:center; gap:6px;
   border:1px solid var(--border); background:transparent; color:var(--ink-mut);
@@ -196,7 +197,7 @@ html.sidebar-collapsed .side-label{ display:none; }
   padding:1px 6px; line-height:1.4;
 }
 .sf-popover{
-  position:absolute; top:100%; left:0; margin-top:6px; z-index:20; min-width:200px;
+  position:absolute; top:100%; right:0; margin-top:6px; z-index:20; min-width:200px;
   background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:6px;
   box-shadow:var(--shadow);
 }
@@ -663,29 +664,29 @@ html.sidebar-collapsed .side-label{ display:none; }
             <input id="q" type="text" placeholder="Search SO / STO no., customer, invoice..." autocomplete="off" />
           </div>
         </div>
-        <div class="type-toggle" id="typeToggle">
-          <button type="button" class="tt-btn active" data-t="ALL">All</button>
-          <button type="button" class="tt-btn" data-t="SO">SO</button>
-          <button type="button" class="tt-btn" data-t="STO">STO</button>
-        </div>
-        <div class="status-filter" id="statusFilter">
-          <button type="button" class="sf-trigger" id="statusFilterBtn">
-            <span>Status</span>
-            <span class="sf-count" id="statusFilterCount" hidden>0</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="sf-popover" id="statusFilterPopover" hidden>
-            <div class="sf-group-label">Dispatch Status</div>
-            <label class="sf-option"><input type="checkbox" data-group="dispatch" value="Not Invoiced"><span>Not Invoiced</span></label>
-            <label class="sf-option"><input type="checkbox" data-group="dispatch" value="Ready for Dispatch"><span>Ready for Dispatch</span></label>
-            <label class="sf-option"><input type="checkbox" data-group="dispatch" value="Dispatched"><span>Dispatched</span></label>
-            <label class="sf-option"><input type="checkbox" data-group="dispatch" value="Order Cancelled"><span>Order Cancelled</span></label>
-            <div class="sf-group-label">Order Status</div>
-            <label class="sf-option"><input type="checkbox" data-group="order" value="Not Processed"><span>Not Processed</span></label>
-            <label class="sf-option"><input type="checkbox" data-group="order" value="Ready to Process"><span>Ready to Process</span></label>
-            <label class="sf-option"><input type="checkbox" data-group="order" value="Production Ready"><span>Production Ready</span></label>
-            <label class="sf-option"><input type="checkbox" data-group="order" value="Cancelled"><span>Cancelled</span></label>
-            <button type="button" class="sf-clear-btn" id="statusFilterClear">Clear filter</button>
+        <div class="filter-row">
+          <div class="type-toggle" id="typeToggle">
+            <button type="button" class="tt-btn active" data-t="ALL">All</button>
+            <button type="button" class="tt-btn" data-t="SO">SO</button>
+            <button type="button" class="tt-btn" data-t="STO">STO</button>
+          </div>
+          <div class="status-filter" id="statusFilter">
+            <button type="button" class="sf-trigger" id="statusFilterBtn">
+              <span>Status</span>
+              <span class="sf-count" id="statusFilterCount" hidden>0</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="sf-popover" id="statusFilterPopover" hidden>
+              <div class="sf-group-label">Dispatch Status</div>
+              <label class="sf-option"><input type="checkbox" data-group="dispatch" value="Ready for Dispatch"><span>Ready for Dispatch</span></label>
+              <label class="sf-option"><input type="checkbox" data-group="dispatch" value="Dispatched"><span>Dispatched</span></label>
+              <div class="sf-group-label">Order Status</div>
+              <label class="sf-option"><input type="checkbox" data-group="order" value="Not Processed"><span>Not Processed</span></label>
+              <label class="sf-option"><input type="checkbox" data-group="order" value="Ready to Process"><span>Ready to Process</span></label>
+              <label class="sf-option"><input type="checkbox" data-group="order" value="Production Ready"><span>Production Ready</span></label>
+              <label class="sf-option"><input type="checkbox" data-group="order" value="Cancelled"><span>Cancelled</span></label>
+              <button type="button" class="sf-clear-btn" id="statusFilterClear">Clear filter</button>
+            </div>
           </div>
         </div>
         <div class="sync-strip">
