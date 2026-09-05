@@ -395,12 +395,9 @@ def so_sto_search():
     doc_type = request.args.get("type", "ALL")
     docs = so_sto_db.search_docs(term, doc_type)
     records = [_record_shape(d) for d in docs]
-    statuses = {s for s in request.args.get("status", "").split(",") if s}
-    if statuses:
-        records = [r for r in records if r["invoice"]["status"] in statuses]
-    order_statuses = {s for s in request.args.get("orderStatus", "").split(",") if s}
-    if order_statuses:
-        records = [r for r in records if r["orderStatus"] in order_statuses]
+    end_statuses = {s for s in request.args.get("status", "").split(",") if s}
+    if end_statuses:
+        records = [r for r in records if r["endStatus"] in end_statuses]
     return jsonify({"records": records})
 
 

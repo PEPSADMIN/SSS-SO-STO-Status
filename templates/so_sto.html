@@ -201,11 +201,6 @@ html.sidebar-collapsed .side-label{ display:none; }
   background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:6px;
   box-shadow:var(--shadow);
 }
-.sf-group-label{
-  font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-dim);
-  padding:8px 9px 4px;
-}
-.sf-group-label:first-child{ padding-top:4px; }
 .sf-option{
   display:flex; align-items:center; gap:9px; padding:8px 9px; border-radius:8px; cursor:pointer;
   font-size:.8rem; color:var(--ink); font-weight:600;
@@ -677,14 +672,12 @@ html.sidebar-collapsed .side-label{ display:none; }
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="sf-popover" id="statusFilterPopover" hidden>
-              <div class="sf-group-label">Dispatch Status</div>
-              <label class="sf-option"><input type="checkbox" data-group="dispatch" value="Ready for Dispatch"><span>Ready for Dispatch</span></label>
-              <label class="sf-option"><input type="checkbox" data-group="dispatch" value="Dispatched"><span>Dispatched</span></label>
-              <div class="sf-group-label">Order Status</div>
-              <label class="sf-option"><input type="checkbox" data-group="order" value="Not Processed"><span>Not Processed</span></label>
-              <label class="sf-option"><input type="checkbox" data-group="order" value="Ready to Process"><span>Ready to Process</span></label>
-              <label class="sf-option"><input type="checkbox" data-group="order" value="Production Ready"><span>Production Ready</span></label>
-              <label class="sf-option"><input type="checkbox" data-group="order" value="Cancelled"><span>Cancelled</span></label>
+              <label class="sf-option"><input type="checkbox" value="Not Processed"><span>Not Processed</span></label>
+              <label class="sf-option"><input type="checkbox" value="Ready to Process"><span>Ready to Process</span></label>
+              <label class="sf-option"><input type="checkbox" value="Production Ready"><span>Production Ready</span></label>
+              <label class="sf-option"><input type="checkbox" value="Ready for Dispatch"><span>Ready for Dispatch</span></label>
+              <label class="sf-option"><input type="checkbox" value="Dispatched"><span>Dispatched</span></label>
+              <label class="sf-option"><input type="checkbox" value="Order Cancelled"><span>Order Cancelled</span></label>
               <button type="button" class="sf-clear-btn" id="statusFilterClear">Clear filter</button>
             </div>
           </div>
@@ -1305,7 +1298,6 @@ const els = {
 };
 let typeFilter = 'ALL';
 const statusFilterSet = new Set();
-const orderStatusFilterSet = new Set();
 const ALLOWED_TABS = (document.body.dataset.tabs || '').split(',').filter(Boolean);
 let defaultLanding = localStorage.getItem('so_sto_landing') || 'home';
 if (!ALLOWED_TABS.includes(defaultLanding)) defaultLanding = ALLOWED_TABS[0] || 'home';
@@ -1355,10 +1347,9 @@ applySidebarState(document.documentElement.classList.contains('sidebar-collapsed
 async function renderList(switchToSearchForList){
   const term = els.q.value.trim();
   const statusParam = [...statusFilterSet].join(',');
-  const orderStatusParam = [...orderStatusFilterSet].join(',');
   let data;
   try {
-    data = await api(`/api/so-sto/search?q=${encodeURIComponent(term)}&type=${typeFilter}&status=${encodeURIComponent(statusParam)}&orderStatus=${encodeURIComponent(orderStatusParam)}`);
+    data = await api(`/api/so-sto/search?q=${encodeURIComponent(term)}&type=${typeFilter}&status=${encodeURIComponent(statusParam)}`);
   } catch (e) {
     els.count.textContent = '';
     els.list.innerHTML = `<div class="empty-state"><div>Search failed: ${esc(e.message)}</div></div>`;
@@ -1371,7 +1362,7 @@ async function renderList(switchToSearchForList){
   // other search.
   if (switchToSearchForList) showView('search');
 
-  els.count.textContent = term || typeFilter !== 'ALL' || statusFilterSet.size || orderStatusFilterSet.size
+  els.count.textContent = term || typeFilter !== 'ALL' || statusFilterSet.size
     ? `${rows.length} match${rows.length === 1 ? '' : 'es'}`
     : `${rows.length} recent records`;
 
@@ -1534,13 +1525,12 @@ els.toggle.addEventListener('click', e => {
   renderList(true);
 });
 
-// Status filter — a single "Status" button opens a checklist popover with
-// two independent groups (Dispatch Status, Order Status). Within a group,
-// checked options are OR'd; the two groups are AND'd together, so e.g.
-// "Order Status: Ready to Process" + "Dispatch Status: Not Invoiced" narrows
-// to records matching both.
+// Status filter — a single "Status" button opens a checklist popover of the
+// same end-state values shown on the card's big badge (not the raw
+// Dispatch/Order status fields separately), so filtering matches what's
+// actually visible. Checked options are OR'd together.
 function updateStatusFilterBtn(){
-  const n = statusFilterSet.size + orderStatusFilterSet.size;
+  const n = statusFilterSet.size;
   els.statusFilterBtn.classList.toggle('active', n > 0);
   els.statusFilterCount.hidden = n === 0;
   els.statusFilterCount.textContent = n;
@@ -1553,15 +1543,13 @@ els.statusFilterPopover.addEventListener('click', e => e.stopPropagation());
 els.statusFilterPopover.addEventListener('change', e => {
   const cb = e.target.closest('input[type="checkbox"]');
   if (!cb) return;
-  const set = cb.dataset.group === 'order' ? orderStatusFilterSet : statusFilterSet;
-  if (cb.checked) set.add(cb.value);
-  else set.delete(cb.value);
+  if (cb.checked) statusFilterSet.add(cb.value);
+  else statusFilterSet.delete(cb.value);
   updateStatusFilterBtn();
   renderList(true);
 });
 els.statusFilterClear.addEventListener('click', () => {
   statusFilterSet.clear();
-  orderStatusFilterSet.clear();
   els.statusFilterPopover.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
   updateStatusFilterBtn();
   renderList(true);
